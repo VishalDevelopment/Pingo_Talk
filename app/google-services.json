@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "857793792798",
+    "project_id": "pingotalk-7ac99",
+    "storage_bucket": "pingotalk-7ac99.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:857793792798:android:d13107b29d95f16484970f",
+        "android_client_info": {
+          "package_name": "com.example.pingotalk"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBTx4ZVXqSdejjTGvwfde4pByjNUagzZF0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
