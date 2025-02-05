@@ -37,6 +37,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,17 +52,32 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.pingotalk.Model.User
 import com.example.pingotalk.R
-import com.example.pingotalk.State
+import com.example.pingotalk.Screens.Home_Screen.viewmodel.ChatViewModel
+import com.example.pingotalk.Utils.CustomDialog
 import com.example.pingotalk.ui.theme.FloatButton
 import com.example.pingotalk.ui.theme.SkyBlue
 
 @Composable
-fun HomeScreen(user: User) {
-
+fun HomeScreen(user: User, chatViewModel: ChatViewModel) {
+    val userDetail = user
+    val showDialog = remember{ mutableStateOf(false) }
+    if (showDialog.value ) {
+        CustomDialog(
+            {
+                //Close Dialog Box
+                showDialog.value = false
+            },
+            {
+                email ->
+                // Viewmodel will share data on fireStore
+                chatViewModel.addChat(email)
+            }
+        )
+    }
     Scaffold(floatingActionButton = {
         FloatingActionButton(
             onClick = {
-
+                showDialog.value = true
             },
             modifier = Modifier.padding(end = 20.dp, bottom = 25.dp), containerColor = FloatButton
         ) {
@@ -100,7 +117,7 @@ fun HomeScreen(user: User) {
                 )  {
                     Text(text = "Hello", color = Color.White, fontSize = 15.sp)
                     Text(
-                        text = "googleVm : ${user.name} ",
+                        text = "${userDetail.name} ",
                         color = Color.White,
                         fontSize = 20.sp,
                         fontFamily = FontFamily.SansSerif
@@ -146,7 +163,7 @@ fun HomeScreen(user: User) {
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(top =18.dp , start=10.dp, end=10.dp ,bottom=0.dp)
+                                .padding(top = 18.dp, start = 10.dp, end = 10.dp, bottom = 0.dp)
                         ) {
                             Text(
                                 text = "Chat",

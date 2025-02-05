@@ -31,9 +31,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.example.pingotalk.R
-import com.example.pingotalk.Viewmodel.GoogleSignInViewModel
-import javax.inject.Inject
-
+import com.example.pingotalk.Screens.Signin_Screen.viewmodel.GoogleSignInViewModel
 
 
 @Composable

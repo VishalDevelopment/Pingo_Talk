@@ -12,3 +12,4 @@ val Pink40 = Color(0xFF7D5260)
 
 val SkyBlue =Color(0xFF24A1DE)
 val FloatButton = Color(0xFF1b297a)
+val TopBarColo = Color(0xFF364D6E)

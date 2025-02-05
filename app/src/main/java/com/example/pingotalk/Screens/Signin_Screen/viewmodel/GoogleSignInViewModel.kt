@@ -1,10 +1,7 @@
-package com.example.pingotalk.Viewmodel
+package com.example.pingotalk.Screens.Signin_Screen.viewmodel
 
 import android.content.Context
-import android.util.Log
 import android.widget.Toast
-import androidx.compose.runtime.mutableStateOf
-import androidx.credentials.Credential
 import androidx.credentials.CredentialManager
 import androidx.credentials.CustomCredential
 import androidx.credentials.GetCredentialRequest
@@ -18,7 +15,6 @@ import com.example.pingotalk.Routes.Routes
 import com.example.pingotalk.State
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
-import com.google.firebase.Firebase
 import com.google.firebase.auth.AuthResult
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
@@ -28,9 +24,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import java.security.MessageDigest
@@ -41,23 +36,23 @@ import javax.inject.Inject
 class GoogleSignInViewModel @Inject constructor(val firebaseAuth: FirebaseAuth,val firebaseStore: FirebaseFirestore) : ViewModel() {
 
 
-    val _user = mutableStateOf<User?>(null)
-    val user = _user.value
+    val _user = MutableStateFlow(User())
+    val user = _user.asStateFlow()
+
     init {
         checkUserLoginStatus()
     }
 
     private fun checkUserLoginStatus() {
         val currentUser = firebaseAuth.currentUser
-        Log.d("USER","$currentUser")
         if (currentUser != null) {
             _user.value = User(
-                currentUser.uid,
-                currentUser.displayName ?: "Unknown",
-                currentUser.photoUrl?.toString() ?: "",
-                currentUser.email ?: "No Email",
-                "",
-                "Free"
+                id = currentUser.uid,
+                name = currentUser.displayName ?: "Unknown",
+                photoUrl = currentUser.photoUrl?.toString() ?: "",
+                email = currentUser.email ?: "No Email",
+                country = "",
+                subscription = "Free"
             )
         }
     }
@@ -69,8 +64,17 @@ class GoogleSignInViewModel @Inject constructor(val firebaseAuth: FirebaseAuth,v
                     is State.Success -> {
                         val currentUser = result.data!!.user
                         if (currentUser!=null){
-                         _user.value = User(currentUser.uid,currentUser.displayName!!,currentUser.photoUrl!!.toString(),currentUser.email!!,"","Free")
+                                _user.value = User(
+                                    id = currentUser.uid,
+                                    name = currentUser.displayName ?: "Unknown",
+                                    photoUrl = currentUser.photoUrl?.toString() ?: "",
+                                    email = currentUser.email ?: "No Email",
+                                    country = "",
+                                    subscription = "Free"
+                                )
+
                             Toast.makeText(context, "Account Created Successfully !", Toast.LENGTH_SHORT).show()
+
 
                             val userCollection = firebaseStore.collection("USERS").document(currentUser.uid)
                             userCollection.get().addOnSuccessListener {
@@ -84,13 +88,18 @@ class GoogleSignInViewModel @Inject constructor(val firebaseAuth: FirebaseAuth,v
 
                             }
 
-                            navController.navigate(Routes.HomeScreen)
+                            navController.navigate(Routes.HomeScreen){
+                                popUpTo(Routes.SiginInScreen) {
+                                    inclusive = true
+                                } // Removes Screen A from the back stack
+                            }
                         }
                         else{
                             val message = result.message.toString()
                             Toast.makeText(context, "something went wrong : $message!!", Toast.LENGTH_SHORT)
                                 .show()
                         }
+
                     }
 
                     is State.Error -> {
