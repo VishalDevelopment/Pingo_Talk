@@ -1,4 +1,4 @@
-package com.example.pingotalk.Screens.Signin_Screen
+package com.example.pingotalk.Screens.Landing_Screen
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -31,7 +31,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.example.pingotalk.R
-import com.example.pingotalk.Screens.Signin_Screen.viewmodel.GoogleSignInViewModel
+import com.example.pingotalk.Screens.Landing_Screen.viewmodel.GoogleSignInViewModel
 
 
 @Composable

@@ -7,5 +7,7 @@ sealed class Routes {
     object SiginInScreen : Routes()
     @Serializable
     object HomeScreen : Routes()
+    @Serializable
+    object ChatScreen : Routes()
 
 }

@@ -2,6 +2,7 @@ package com.example.pingotalk.Di
 
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import dagger.Module
 import dagger.Provides
@@ -18,6 +19,6 @@ object Module {
     }
     @Provides
     fun FirebaseCloudStore():FirebaseFirestore{
-        return  FirebaseFirestore.getInstance()
+        return  Firebase.firestore
     }
 }

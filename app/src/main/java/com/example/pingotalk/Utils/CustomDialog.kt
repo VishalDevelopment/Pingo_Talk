@@ -28,7 +28,10 @@ import androidx.compose.ui.unit.sp
 
 @Composable
 
-fun CustomDialog(RemoveDialog: () -> Unit, AddEmailToFireStore: (email:String) -> Unit) {
+fun CustomDialog(
+    RemoveDialog: () -> Unit,
+    AddEmailToFireStore: (email: String) -> Unit
+) {
     BackHandler {
         RemoveDialog()
     }

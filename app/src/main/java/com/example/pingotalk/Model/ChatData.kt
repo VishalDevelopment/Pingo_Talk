@@ -5,8 +5,8 @@ import com.google.protobuf.Timestamp
 data class ChatData(
     val chatId: String? = null,
     val last: Message? = null,
-    val user1: ChatUser,
-    val user2: ChatUser,
+    val user1: ChatUser = ChatUser(),
+    val user2: ChatUser=ChatUser(),
 )
 
 data class Message(

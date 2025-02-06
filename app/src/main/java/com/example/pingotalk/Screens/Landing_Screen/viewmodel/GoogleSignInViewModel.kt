@@ -1,4 +1,4 @@
-package com.example.pingotalk.Screens.Signin_Screen.viewmodel
+package com.example.pingotalk.Screens.Landing_Screen.viewmodel
 
 import android.content.Context
 import android.widget.Toast

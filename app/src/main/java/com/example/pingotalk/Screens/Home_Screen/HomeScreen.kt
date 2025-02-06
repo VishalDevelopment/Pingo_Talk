@@ -6,6 +6,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Column
@@ -35,8 +36,8 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.Immutable
-import androidx.compose.runtime.Stable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -50,30 +51,30 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.pingotalk.Model.User
+import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
+import com.example.pingotalk.Model.ChatData
+import com.example.pingotalk.Model.Message
 import com.example.pingotalk.R
-import com.example.pingotalk.Screens.Home_Screen.viewmodel.ChatViewModel
+import com.example.pingotalk.Screens.Home_Screen.viewmodel.HomeViewModel
 import com.example.pingotalk.Utils.CustomDialog
 import com.example.pingotalk.ui.theme.FloatButton
 import com.example.pingotalk.ui.theme.SkyBlue
 
 @Composable
-fun HomeScreen(user: User, chatViewModel: ChatViewModel) {
-    val userDetail = user
-    val showDialog = remember{ mutableStateOf(false) }
-    if (showDialog.value ) {
-        CustomDialog(
-            {
-                //Close Dialog Box
-                showDialog.value = false
-            },
-            {
-                email ->
-                // Viewmodel will share data on fireStore
-                chatViewModel.addChat(email)
-            }
-        )
+fun HomeScreen(MoveToChatScreen: (chatId:ChatData) -> Unit) {
+    val homeViewModel :HomeViewModel = hiltViewModel()
+    LaunchedEffect(Unit){
+        homeViewModel.fetchUserData()
+        homeViewModel.getAllChatPartners()
     }
+    val user = homeViewModel.userData.collectAsState()
+    val chatList = homeViewModel.chat.collectAsState()
+    val showDialog = remember { mutableStateOf(false) }
+    if (showDialog.value) {
+        CustomDialog({ showDialog.value = false }, { email -> homeViewModel.addChatPartner(email) })
+    }
+
     Scaffold(floatingActionButton = {
         FloatingActionButton(
             onClick = {
@@ -92,7 +93,7 @@ fun HomeScreen(user: User, chatViewModel: ChatViewModel) {
         val lazyScrollState = rememberLazyListState()
 
         Box(modifier = Modifier.fillMaxSize()) {
-            // Background Image
+
             Image(
                 painter = painterResource(id = R.drawable.blck_blurry),
                 contentDescription = null,
@@ -100,24 +101,23 @@ fun HomeScreen(user: User, chatViewModel: ChatViewModel) {
                 modifier = Modifier.fillMaxSize()
             )
 
-            // Main Column layout
+
             Column(modifier = Modifier.fillMaxSize()) {
-                // Column 1 - Initially visible
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(10.dp)
                         .let {
                             if (lazyScrollState.firstVisibleItemIndex > 0) {
-                                it.height(0.dp)  // This will make the column "gone" when scrolling
+                                it.height(0.dp)
                             } else {
                                 it
                             }
                         }
-                )  {
+                ) {
                     Text(text = "Hello", color = Color.White, fontSize = 15.sp)
                     Text(
-                        text = "${userDetail.name} ",
+                        text = "${user.value.name}",
                         color = Color.White,
                         fontSize = 20.sp,
                         fontFamily = FontFamily.SansSerif
@@ -147,10 +147,14 @@ fun HomeScreen(user: User, chatViewModel: ChatViewModel) {
                         .fillMaxHeight()
                         .padding(top = 10.dp)
                         .animateContentSize(animationSpec = tween(durationMillis = 500)), // Smooth transition
-                    shape = RoundedCornerShape(topEnd = 15.dp, topStart = 15.dp, bottomEnd = 0.dp, bottomStart = 0.dp),
+                    shape = RoundedCornerShape(
+                        topEnd = 15.dp,
+                        topStart = 15.dp,
+                        bottomEnd = 0.dp,
+                        bottomStart = 0.dp
+                    ),
                 ) {
                     Box(modifier = Modifier.fillMaxSize()) {
-                        // Background Image for the Card
                         Image(
                             painter = painterResource(id = R.drawable.blck_blurry),
                             contentDescription = null,
@@ -159,7 +163,6 @@ fun HomeScreen(user: User, chatViewModel: ChatViewModel) {
                             alpha = 1f // Adjust alpha for background blur effect
                         )
 
-                        // Chat Section inside the Card
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -173,28 +176,12 @@ fun HomeScreen(user: User, chatViewModel: ChatViewModel) {
                                 fontSize = 20.sp
                             )
 
-                            val chatList = listOf(
-                                ChatFeature("Alice", "Hey, how are you?", "10:30 AM", "2"),
-                                ChatFeature("Bob", "Let's meet at 5 PM.", "11:15 AM", "3"),
-                                ChatFeature("Charlie", "Can you send me the file?", "12:45 PM", "1"),
-                                ChatFeature("David", "See you tomorrow!", "1:20 PM", "5"),
-                                ChatFeature("Emma", "Lunch at 2?", "1:50 PM", "2"),
-                                ChatFeature("Frank", "Did you finish the report?", "2:10 PM", "4"),
-                                ChatFeature("Grace", "Call me when you're free.", "2:40 PM", "1"),
-                                ChatFeature("Hannah", "Movie night today?", "3:15 PM", "3"),
-                                ChatFeature("Ian", "Meeting rescheduled to 6 PM.", "3:45 PM", "2"),
-                                ChatFeature("Jack", "Happy Birthday!", "4:00 PM", "6"),
-                                ChatFeature("Kelly", "See you in 10 minutes.", "4:30 PM", "1"),
-                                ChatFeature("Leo", "Can we reschedule?", "5:00 PM", "2"),
-                                ChatFeature("Mia", "Where are you?", "5:45 PM", "4"),
-                                ChatFeature("Nathan", "Good night!", "10:10 PM", "1")
-                            )
-                            // LazyColumn for the chat list
+
                             LazyColumn(state = lazyScrollState) {
 
 
-                                items(chatList, key = { it.name }){
-                                     ChatBox(it)
+                                items(chatList.value) {
+                                    ChatBox(it,MoveToChatScreen)
                                 }
                             }
                         }
@@ -208,12 +195,14 @@ fun HomeScreen(user: User, chatViewModel: ChatViewModel) {
 }
 
 @Composable
-fun ChatBox(chatFeature: ChatFeature) {
+fun ChatBox(chatFeature: ChatData, MoveToChatScreen: (chatId: ChatData) -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(8.dp)
-            .background(Color.Transparent),
+            .background(Color.Transparent).clickable {
+                MoveToChatScreen(chatFeature)
+            },
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
@@ -222,8 +211,8 @@ fun ChatBox(chatFeature: ChatFeature) {
                 .clip(CircleShape)
                 .border(1.dp, Color.White, CircleShape)
         ) {
-            Image(
-                painter = painterResource(id = R.drawable.person_placeholder_4),
+            AsyncImage(
+                model = "${chatFeature.user2.ppurl}",
                 contentDescription = null,
                 modifier = Modifier.fillMaxSize()
             )
@@ -235,46 +224,66 @@ fun ChatBox(chatFeature: ChatFeature) {
             modifier = Modifier.weight(1f)
         ) {
             Text(
-                text = "${chatFeature.name}",
+                text = "${chatFeature.user2.username}",
                 color = Color.White,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold
             )
-            Text(
-                text = "${chatFeature.message}",
-                color = Color.White,
-                fontSize = 12.sp
-            )
+            if (chatFeature.last != Message()) {
+                Text(
+                    text = "${chatFeature.last?.msgId}",
+                    color = Color.White,
+                    fontSize = 12.sp
+                )
+            } else {
+                Text(
+                    text = "${chatFeature.user2.bio}",
+                    color = Color.White,
+                    fontSize = 12.sp
+                )
+            }
+
         }
 
         Column(
             horizontalAlignment = Alignment.End
         ) {
-            Text(
-                text = "${chatFeature.time}",
-                color = Color.White,
-                fontSize = 12.sp
-            )
+            if (chatFeature.last?.time == null) {
+                Text(
+                    text = "",
+                    color = Color.White,
+                    fontSize = 12.sp
+                )
+            } else {
+                Text(
+                    text = "${chatFeature.last.time}",
+                    color = Color.White,
+                    fontSize = 12.sp
+                )
+            }
+
             Spacer(modifier = Modifier.height(4.dp))
-            Box(
-                modifier = Modifier
-                    .size(20.dp)
-                    .clip(CircleShape)
-                    .background(SkyBlue),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(text = "${chatFeature.totalMessage}", color = Color.White, fontSize = 8.sp)
+            if (chatFeature.user2.unread > 0) {
+                Box(
+                    modifier = Modifier
+                        .size(20.dp)
+                        .clip(CircleShape)
+                        .background(SkyBlue),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(text = "${chatFeature.user2.unread}", color = Color.White, fontSize = 8.sp)
+                }
+            } else {
+                Text(text = "", color = Color.White, fontSize = 8.sp)
             }
         }
-
     }
 }
 
-@Immutable
-@Stable
+
 data class ChatFeature(
-    val name:String,
-    val message :String,
-    val time:String,
-    val totalMessage:String
+    val name: String,
+    val message: String,
+    val time: String,
+    val totalMessage: String,
 )
