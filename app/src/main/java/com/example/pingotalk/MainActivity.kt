@@ -49,7 +49,7 @@ class MainActivity : ComponentActivity() {
             Routes.SiginInScreen
         }
 
-        var chatFeature :ChatData= ChatData()
+        var chatFeature = ChatData()
 
         NavHost(navController = navController, startDestination = startDestination) {
             composable<Routes.SiginInScreen> {
@@ -61,10 +61,7 @@ class MainActivity : ComponentActivity() {
                     chatFeature = chat
                     navController.navigate(Routes.ChatScreen)
                         {
-                            // This ensures the chat screen is pushed on top of HomeScreen
-                            // without removing any screens from the stack.
                             launchSingleTop = true
-//                             Optional: To make sure the current screen is not popped when navigating
                              popUpTo(Routes.HomeScreen) { inclusive = false }
 
                     }
@@ -72,7 +69,7 @@ class MainActivity : ComponentActivity() {
             }
             composable<Routes.ChatScreen>{
                 ChatScreen(chatFeature) {
-                    navController.popBackStack()
+                    navController.navigateUp()
                 }
             }
         }

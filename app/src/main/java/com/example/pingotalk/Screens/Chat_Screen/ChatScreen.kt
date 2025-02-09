@@ -1,7 +1,11 @@
 package com.example.pingotalk.Screens.Chat_Screen
 
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,9 +13,15 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -29,6 +39,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,17 +53,41 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.example.pingotalk.Model.ChatData
+import com.example.pingotalk.Model.Message
 import com.example.pingotalk.R
+import com.example.pingotalk.Screens.Chat_Screen.viewmodel.ChatViewModel
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 
 fun ChatScreen(chatFeatures: ChatData, BackToHomeScreen: () -> Unit) {
-    Log.d("CHATID", "chat id : ${chatFeatures}")
+    val chatViewModel: ChatViewModel = hiltViewModel()
+    LaunchedEffect(Unit) {
+        if (chatFeatures.chatId.toString() != null) {
+            if (chatFeatures.chatId.toString() != "") {
+                chatViewModel.receiveMessages(chatFeatures.chatId.toString())
+            } else {
+                Log.d("CHATID", "chat Id is empty")
+            }
+        } else {
+            Log.d("CHATID", "chat Id isnull")
+
+        }
+    }
+    val messageList = chatViewModel.individualchat.collectAsState()
+
+    Log.d("CHATSCREEN", "chats : ${messageList.value}")
+
     Scaffold(topBar = {
         CenterAlignedTopAppBar(navigationIcon = {
             IconButton(onClick = {
@@ -86,7 +122,7 @@ fun ChatScreen(chatFeatures: ChatData, BackToHomeScreen: () -> Unit) {
                         Text(
                             text = if (chatFeatures.user2.status == false) {
                                 ""
-                            }else{
+                            } else {
                                 "Online"
                             }, // Replace with dynamic status
                             style = MaterialTheme.typography.bodyMedium,
@@ -98,7 +134,7 @@ fun ChatScreen(chatFeatures: ChatData, BackToHomeScreen: () -> Unit) {
             actions = {
                 IconButton(onClick = {
                     // Handle three dot click here
-
+                    
                 }) {
                     Icon(imageVector = Icons.Default.MoreVert, contentDescription = "More Options")
                 }
@@ -126,6 +162,58 @@ fun ChatScreen(chatFeatures: ChatData, BackToHomeScreen: () -> Unit) {
                         .fillMaxHeight(.90f)
                         .fillMaxWidth()
                 ) {
+
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.Bottom
+                    ) {
+                        items(messageList.value) { message ->
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(8.dp),
+                                contentAlignment = if (message.senderId == chatFeatures.user1.userId) Alignment.CenterEnd else Alignment.CenterStart
+                            ) {
+                                Column(horizontalAlignment = Alignment.Start) { // Stack message + time
+                                    Row(
+                                        modifier = Modifier
+                                            .wrapContentWidth()
+                                            .clip(
+                                                RoundedCornerShape(
+                                                    topStart = 16.dp,
+                                                    topEnd = 16.dp,
+                                                    bottomEnd = if (message.senderId == chatFeatures.user1.userId) 0.dp else 16.dp,
+                                                    bottomStart = if (message.senderId == chatFeatures.user1.userId) 16.dp else 0.dp
+                                                )
+                                            )
+                                            .background(
+                                                if (message.senderId == chatFeatures.user1.userId) Color(0xFFDCF8C6) else Color.DarkGray
+                                            )
+                                            .padding(12.dp)
+                                    ) {
+                                        Text(
+                                            text = message.content.toString(),
+                                            fontSize = 16.sp,
+                                            textAlign = TextAlign.Start,
+                                            color = if (message.senderId == chatFeatures.user1.userId) Color.Black else Color.White,
+                                            modifier = Modifier.wrapContentWidth()
+                                        )
+                                    }
+
+                                    // Timestamp (ensures it's always visible)
+                                    Text(
+                                        text = "${message.time}", // Test value
+                                        fontSize = 12.sp,
+                                        color = Color.Gray,
+                                        modifier = Modifier
+                                            .padding(top = 2.dp, start = 6.dp) // Space between message and time
+                                            .align(Alignment.End) // Right-align for sent messages
+                                    )
+                                }
+                            }
+                        }
+                    }
+
                 }
                 Row(Modifier.fillMaxWidth()) {
                     OutlinedTextField(
@@ -140,12 +228,19 @@ fun ChatScreen(chatFeatures: ChatData, BackToHomeScreen: () -> Unit) {
                                 tint = Color.Black
                             )
                         },
+
                         trailingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.Send,
-                                contentDescription = null,
-                                tint = Color.Black
-                            )
+                            if (message != "") {
+                                Icon(
+                                    imageVector = Icons.Default.Send,
+                                    contentDescription = null,
+                                    tint = Color.Black, modifier = Modifier.clickable {
+
+                                        chatViewModel.sendMessage(chatFeatures, message)
+                                        message = ""
+                                    }
+                                )
+                            }
                         },
                         placeholder = {
                             Text(text = "Type a message ...")
@@ -165,3 +260,10 @@ fun ChatScreen(chatFeatures: ChatData, BackToHomeScreen: () -> Unit) {
         }
     }
 }
+
+
+
+
+
+
+

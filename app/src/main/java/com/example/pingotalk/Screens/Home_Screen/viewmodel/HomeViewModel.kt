@@ -98,17 +98,19 @@ class HomeViewModel @Inject constructor(
                 Filter.equalTo("user1.email", userData.value?.email)
             )
         ).get().addOnSuccessListener {
+
             if (it.isEmpty) {
                 firestore.collection("USERS").whereEqualTo("email", email).get()
                     .addOnSuccessListener { userSnapshot ->
                         if (userSnapshot.isEmpty) {
                             Log.d("AddChat", "User not exist on USER Firestore")
-                        } else {
+                        }
+                        else {
                             val chatPartner = userSnapshot.toObjects(User::class.java).firstOrNull()
                             val id = firestore.collection("CHATS").document()
                             val chat = ChatData(
                                 chatId = id.id,
-                                last = Message(senderId = "", content = "", time = null),
+                                last = Message(senderId = "", content = "", time =""),
                                 user1 = ChatUser(
                                     userId = userData.value!!.id.toString(),
                                     typing = false,
@@ -129,14 +131,12 @@ class HomeViewModel @Inject constructor(
                                 )
                             )
 
-                            firestore.collection("CHATS")
-                                .document(userData.value?.id!!)
-                                .collection("chats")
-                                .document(id.id)
-                                .set(chat)
                         }
                     }
             }
+
+
         }
     }
+
 }

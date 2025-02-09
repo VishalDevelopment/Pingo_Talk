@@ -20,7 +20,7 @@ data class Message(
     val vidUrl: String = "",
     val progress: String = "",
     val content: String = "",
-    val time: Timestamp? = null,
+    val time: String = "",
     val forwarded: Boolean = false,
 )
 

@@ -229,9 +229,9 @@ fun ChatBox(chatFeature: ChatData, MoveToChatScreen: (chatId: ChatData) -> Unit)
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold
             )
-            if (chatFeature.last != Message()) {
+            if (chatFeature.last?.content != "") {
                 Text(
-                    text = "${chatFeature.last?.msgId}",
+                    text = "${chatFeature.last?.content}",
                     color = Color.White,
                     fontSize = 12.sp
                 )
