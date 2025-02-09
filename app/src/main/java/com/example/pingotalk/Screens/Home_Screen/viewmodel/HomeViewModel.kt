@@ -51,6 +51,7 @@ class HomeViewModel @Inject constructor(
                 }
         }
     }
+
     override fun onCleared() {
         super.onCleared()
         userDataListener?.remove()
@@ -104,13 +105,12 @@ class HomeViewModel @Inject constructor(
                     .addOnSuccessListener { userSnapshot ->
                         if (userSnapshot.isEmpty) {
                             Log.d("AddChat", "User not exist on USER Firestore")
-                        }
-                        else {
+                        } else {
                             val chatPartner = userSnapshot.toObjects(User::class.java).firstOrNull()
                             val id = firestore.collection("CHATS").document()
                             val chat = ChatData(
                                 chatId = id.id,
-                                last = Message(senderId = "", content = "", time =""),
+                                last = Message(senderId = "", content = "You added ${chatPartner!!.name}", time = ""),
                                 user1 = ChatUser(
                                     userId = userData.value!!.id.toString(),
                                     typing = false,
@@ -131,11 +131,41 @@ class HomeViewModel @Inject constructor(
                                 )
                             )
 
+                            firestore.collection("CHATS")
+                                .document(userData.value?.id!!)
+                                .collection("chats")
+                                .document(id.id)
+                                .set(chat)
+
+
+                            val chatForPartner = ChatData(
+                                chatId = id.id,
+                                last = Message(senderId = "", content = "${firebaseAuth.currentUser!!.displayName} added You", time = ""),
+                                user2 = ChatUser(
+                                    userId = userData.value!!.id.toString(),
+                                    typing = false,
+                                    bio = "",
+                                    username = userData.value!!.name.toString(),
+                                    ppurl = userData.value!!.photoUrl.toString(),
+                                    email = userData.value!!.email.toString(),
+                                ),
+                                user1 = ChatUser(
+                                    userId = chatPartner?.id ?: "",
+                                    typing = false,
+                                    bio = "",
+                                    username = chatPartner?.name ?: "",
+                                    ppurl = chatPartner?.photoUrl ?: "",
+                                    email = chatPartner?.email ?: "",
+                                    status = false,
+                                    unread = 0
+                                )
+                            )
+
+                            firestore.collection("CHATS").document(chatPartner!!.id.toString())
+                                .collection("chats").document(id.id).set(chatForPartner)
                         }
                     }
             }
-
-
         }
     }
 

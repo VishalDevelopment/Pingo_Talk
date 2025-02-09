@@ -7,6 +7,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Column
@@ -88,7 +89,8 @@ fun HomeScreen(MoveToChatScreen: (chatId:ChatData) -> Unit) {
                 tint = Color.White
             )
         }
-    }) { padding ->
+    }) {
+        padding ->
         val scrollState = rememberScrollState()
         val lazyScrollState = rememberLazyListState()
 
@@ -115,13 +117,41 @@ fun HomeScreen(MoveToChatScreen: (chatId:ChatData) -> Unit) {
                             }
                         }
                 ) {
-                    Text(text = "Hello", color = Color.White, fontSize = 15.sp)
-                    Text(
-                        text = "${user.value.name}",
-                        color = Color.White,
-                        fontSize = 20.sp,
-                        fontFamily = FontFamily.SansSerif
-                    )
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column() {
+                            Text(text = "Hello", color = Color.White, fontSize = 15.sp)
+                            Text(
+                                text = "${user.value.name}",
+                                color = Color.White,
+                                fontSize = 20.sp,
+                                fontFamily = FontFamily.SansSerif
+                            )
+                        }
+                        Row(modifier = Modifier.fillMaxWidth(.4f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceAround) {
+                            Box(
+                                modifier = Modifier
+                                    .size(30.dp)
+                                    .clip(CircleShape)
+                                    .background(FloatButton), // Dark Blue
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Image(
+                                    painter = painterResource(id = R.drawable.search_icon),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                            Image(
+                                painter = painterResource(id = R.drawable.person_placeholder_4),
+                                contentDescription = null,
+                                modifier = Modifier.size(25.dp)
+                            )
+                        }
+                    }
                     Spacer(modifier = Modifier.padding(vertical = 10.dp))
                     Row {
                         OutlinedButton(

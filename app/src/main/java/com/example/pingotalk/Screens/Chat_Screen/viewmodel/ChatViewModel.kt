@@ -20,8 +20,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import java.text.SimpleDateFormat
+import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 import java.util.UUID
 import javax.inject.Inject
 
@@ -52,7 +55,9 @@ class ChatViewModel @Inject constructor(
                     }
 
                     result?.let {
-                        val messageList = it.toObjects(Message::class.java)
+                        val messageList = it.toObjects(Message::class.java).map { message ->
+                            message.copy(time = extractTime(message.time)) // Extract only time
+                        }
                         viewModelScope.launch {
                            _individialchat.emit(messageList)
                         }
@@ -93,18 +98,27 @@ class ChatViewModel @Inject constructor(
     }
 
 
+}
 
+fun extractTime(dateTimeString: String): String {
+    return try {
+        val inputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd hh:mm a", Locale.getDefault())
+        val outputFormatter = DateTimeFormatter.ofPattern("hh:mm a", Locale.getDefault())
 
-
+        val localDateTime = LocalDateTime.parse(dateTimeString, inputFormatter)
+        localDateTime.format(outputFormatter) // Extracts only "12:34 PM"
+    } catch (e: Exception) {
+        Log.e("MESSAGE", "Error parsing time: ${e.message}")
+        dateTimeString // Return original if parsing fails
+    }
 }
 
 fun calculateTime(): String {
-    val time = LocalTime.now() // Get current time
-    val formatter = DateTimeFormatter.ofPattern("hh:mm a") // 12-hour format with AM/PM
-    val formattedTime = time.format(formatter)
-    return formattedTime.toString()
-
+    val currentDateTime = LocalDateTime.now() // Get current date & time
+    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd hh:mm a") // Format with date
+    return currentDateTime.format(formatter) // Returns "2024-02-09 12:34 PM"
 }
+
 
 fun EncryptedCode(): String {
     val messageId = UUID.randomUUID().toString()
