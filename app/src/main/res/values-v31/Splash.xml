@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="Theme.SplashScreen.PingoTalk" parent="Theme.SplashScreen">
+        <!-- Background color -->
+        <item name="windowSplashScreenBackground">#0A1F44</item>
+
+        <!-- App icon -->
+        <item name="windowSplashScreenAnimatedIcon">@drawable/app_icon</item>
+
+        <!-- Icon background color -->
+        <item name="windowSplashScreenIconBackgroundColor">@color/white</item>
+
+        <!-- Branding image (slogan below the icon) -->
+        <item name="android:windowSplashScreenBrandingImage">@drawable/splash_slogan</item>
+
+        <!-- Transition to main theme -->
+        <item name="postSplashScreenTheme">@style/Theme.PingoTalk</item>
+    </style>
+
+
+</resources>

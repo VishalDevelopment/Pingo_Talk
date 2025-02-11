@@ -77,10 +77,8 @@ fun SignInScreen(navController: NavHostController) {
             Spacer(modifier = Modifier.padding(vertical = 25.dp))
             OutlinedButton(
                 onClick = {
-
                     // Handle Google One Tap Sign In
-                   viewmodel.handleGoogleSignIn(context, navController)
-
+                    viewmodel.HandleGoogleSigning(context)
                 },
                 modifier = Modifier
                     .background(buttonBrush, CircleShape)

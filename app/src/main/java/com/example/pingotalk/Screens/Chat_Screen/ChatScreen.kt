@@ -84,7 +84,7 @@ fun ChatScreen(chatFeatures: ChatData, BackToHomeScreen: () -> Unit) {
 
         }
     }
-    val messageList = chatViewModel.individualchat.collectAsState()
+    val messageList = chatViewModel.individualChat.collectAsState()
 
     Log.d("CHATSCREEN", "chats : ${messageList.value}")
 

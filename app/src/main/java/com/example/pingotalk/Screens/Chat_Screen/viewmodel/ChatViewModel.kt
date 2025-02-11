@@ -38,36 +38,42 @@ class ChatViewModel @Inject constructor(
 
 
 
-    private val _individialchat = MutableStateFlow<List<Message>>(emptyList())
-    val individualchat = _individialchat.asStateFlow()
-    var individualchatListener: ListenerRegistration? = null
-    fun receiveMessages(chatId:String) {
-//        val currentUserId = firebaseAuth.currentUser?.uid
+    private val _individualChat = MutableStateFlow<List<Message>>(emptyList())
+    val individualChat = _individualChat.asStateFlow()
+    var individualChatListener: ListenerRegistration? = null
 
-           individualchatListener = firestore.collection("MESSAGE")
-                .document(chatId)
-                .collection("message")
-                .addSnapshotListener { result, error ->
+    fun receiveMessages(chatId: String) {
+        individualChatListener = firestore.collection("MESSAGE")
+            .document(chatId)
+            .collection("message")
+            .addSnapshotListener { result, error ->
 
-                    if (error != null) {
-                        Log.w("MESSAGE", "Error getting chats for user , error")
-                        return@addSnapshotListener
-                    }
-
-                    result?.let {
-                        val messageList = it.toObjects(Message::class.java).map { message ->
-                            message.copy(time = extractTime(message.time)) // Extract only time
-                        }
-                        viewModelScope.launch {
-                           _individialchat.emit(messageList)
-                        }
-                        Log.d("MESSAGE", "Found ${messageList.size}} chatId $chatId")
-                    } ?: run {
-                        Log.d("MESSAGE","result : null")
-                    }
+                if (error != null) {
+                    Log.w("MESSAGE", "Error getting chats: ${error.message}")
+                    return@addSnapshotListener
                 }
 
+                result?.let {
+                    val messageList = it.toObjects(Message::class.java)
+                        .mapNotNull { message ->
+                            val parsedDateTime = parseDateTime(message.time)
+                            parsedDateTime?.let { dateTime ->
+                                message.copy(time = dateTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd hh:mm a")))
+                            }
+                        }
+                        .sortedBy { parseDateTime(it.time) } // Sorting messages by date and time
+
+                    viewModelScope.launch {
+                        _individualChat.emit(messageList) // Emitting sorted list
+                    }
+
+                    Log.d("MESSAGE", "Found ${messageList.size} messages for chatId: $chatId")
+                } ?: run {
+                    Log.d("MESSAGE", "Firestore result is null")
+                }
+            }
     }
+
     fun sendMessage(chatId: ChatData, message: String) {
         val messageId = EncryptedCode()
         val time = calculateTime()
@@ -86,6 +92,10 @@ class ChatViewModel @Inject constructor(
                         firestore.collection("CHATS").document(userId).collection("chats")
                             .document(chatId.chatId.toString())
                             .update("last", messageData)
+                        firestore.collection("CHATS").document(chatId.user2.userId).collection("chats")
+                            .document(chatId.chatId.toString())
+                            .update("last", messageData)
+
                         Log.d("MESSAGE", "message sent : ")
                     } catch (e: Exception) {
                         Log.d("MESSAGE", "exception : ${e.message}")
@@ -100,16 +110,14 @@ class ChatViewModel @Inject constructor(
 
 }
 
-fun extractTime(dateTimeString: String): String {
+// Parsing function
+fun parseDateTime(dateTimeString: String): LocalDateTime? {
     return try {
-        val inputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd hh:mm a", Locale.getDefault())
-        val outputFormatter = DateTimeFormatter.ofPattern("hh:mm a", Locale.getDefault())
-
-        val localDateTime = LocalDateTime.parse(dateTimeString, inputFormatter)
-        localDateTime.format(outputFormatter) // Extracts only "12:34 PM"
+        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd hh:mm a", Locale.ENGLISH)
+        LocalDateTime.parse(dateTimeString, formatter)
     } catch (e: Exception) {
-        Log.e("MESSAGE", "Error parsing time: ${e.message}")
-        dateTimeString // Return original if parsing fails
+        Log.e("MESSAGE", "Error parsing date-time: ${e.message}")
+        null
     }
 }
 
