@@ -4,6 +4,12 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -21,13 +27,14 @@ import com.example.pingotalk.Routes.Routes
 import com.example.pingotalk.Screens.Chat_Screen.ChatScreen
 import com.example.pingotalk.Screens.Home_Screen.HomeScreen
 import com.example.pingotalk.Screens.Landing_Screen.SignInScreen
+import com.example.pingotalk.Screens.Profile_Screen.ProfileScreen
+import com.example.pingotalk.Screens.Search_Screen.SearchScreen
 import com.example.pingotalk.Viewmodel.PingoViewmodel
 import com.example.pingotalk.ui.theme.PingoTalkTheme
-import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.AndroidEntryPoint
 
 
-var startDestination :Any = mutableStateOf<Any>(Routes.SiginInScreen)
+var startDestination: Any = mutableStateOf<Any>(Routes.SiginInScreen)
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -36,17 +43,16 @@ class MainActivity : ComponentActivity() {
 
         enableEdgeToEdge()
         setContent {
-            val pingoVm :PingoViewmodel = hiltViewModel()
-            installSplashScreen().apply{
-                setKeepOnScreenCondition{
-                pingoVm.splash
+            val pingoVm: PingoViewmodel = hiltViewModel()
+            installSplashScreen().apply {
+                setKeepOnScreenCondition {
+                    pingoVm.splash
                 }
             }
 
             PingoTalkTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     Column(modifier = Modifier.padding(innerPadding)) {
-
                         StartApp()
                     }
                 }
@@ -56,31 +62,55 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     fun StartApp() {
-        val startDestination =  startDestination
         val navController = rememberNavController()
-
         var chatFeature = ChatData()
-
-        NavHost(navController = navController, startDestination = startDestination) {
+        val destination = startDestination
+        NavHost(
+            navController = navController,
+            startDestination = destination
+        ) {
             composable<Routes.SiginInScreen> {
                 SignInScreen(navController)
             }
             composable<Routes.HomeScreen> {
-
-                HomeScreen(){ chat ->
+                HomeScreen({ chat ->
                     chatFeature = chat
-                    navController.navigate(Routes.ChatScreen)
-                        {
-                            launchSingleTop = true
-                             popUpTo(Routes.HomeScreen) { inclusive = false }
-
+                    navController.navigate(Routes.ChatScreen) {
+                        launchSingleTop = true
+                        popUpTo(Routes.HomeScreen) { inclusive = false }
                     }
-                }
+                }, {
+                    navController.navigate(Routes.ProfileScreen)
+                },{
+                    navController.navigate(Routes.SearchScreen)
+                })
             }
-            composable<Routes.ChatScreen>{
+            composable<Routes.ChatScreen>(
+                enterTransition = { slideInHorizontally(initialOffsetX = { it }) },  // Slide in from right
+                exitTransition = { slideOutHorizontally(targetOffsetX = { it }) }    // Slide out to right
+            ) {
                 ChatScreen(chatFeature) {
                     navController.navigateUp()
                 }
+            }
+            composable<Routes.ProfileScreen>(
+                enterTransition = { slideInHorizontally(initialOffsetX = { it }) },  // Slide in from right
+                exitTransition = { slideOutHorizontally(targetOffsetX = { it }) }    // Slide out to right
+            ) {
+                ProfileScreen ({
+                    navController.navigateUp()
+                })
+            }
+
+            composable<Routes.SearchScreen>(
+                enterTransition = {
+                    scaleIn(initialScale = 0.8f) + fadeIn() // Scale up + fade in
+                },
+                exitTransition = {
+                    scaleOut(targetScale = 0.8f) + fadeOut() // Scale down + fade out
+                }
+            ){
+                SearchScreen()
             }
         }
     }

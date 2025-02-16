@@ -110,7 +110,7 @@ class HomeViewModel @Inject constructor(
                             val id = firestore.collection("CHATS").document()
                             val chat = ChatData(
                                 chatId = id.id,
-                                last = Message(senderId = "", content = "You added ${chatPartner!!.name}", time = ""),
+                                last = Message(senderId = "", content = "You added ${chatPartner!!.name}", time = 0),
                                 user1 = ChatUser(
                                     userId = userData.value!!.id.toString(),
                                     typing = false,
@@ -140,7 +140,7 @@ class HomeViewModel @Inject constructor(
 
                             val chatForPartner = ChatData(
                                 chatId = id.id,
-                                last = Message(senderId = "", content = "${firebaseAuth.currentUser!!.displayName} added You", time = ""),
+                                last = Message(senderId = "", content = "${firebaseAuth.currentUser!!.displayName} added You", time = 0),
                                 user2 = ChatUser(
                                     userId = userData.value!!.id.toString(),
                                     typing = false,

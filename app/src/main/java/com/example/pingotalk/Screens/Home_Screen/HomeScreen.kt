@@ -29,6 +29,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.InsertComment
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FloatingActionButton
@@ -38,6 +39,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -55,7 +57,6 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.example.pingotalk.Model.ChatData
-import com.example.pingotalk.Model.Message
 import com.example.pingotalk.R
 import com.example.pingotalk.Screens.Home_Screen.viewmodel.HomeViewModel
 import com.example.pingotalk.Utils.CustomDialog
@@ -63,7 +64,11 @@ import com.example.pingotalk.ui.theme.FloatButton
 import com.example.pingotalk.ui.theme.SkyBlue
 
 @Composable
-fun HomeScreen(MoveToChatScreen: (chatId:ChatData) -> Unit) {
+fun HomeScreen(
+    MoveToChatScreen: (chatId: ChatData) -> Unit,
+    GoToProfile: () -> Unit,
+    GoToSearch: () -> Unit
+) {
     val homeViewModel :HomeViewModel = hiltViewModel()
     LaunchedEffect(Unit){
         homeViewModel.fetchUserData()
@@ -139,16 +144,20 @@ fun HomeScreen(MoveToChatScreen: (chatId:ChatData) -> Unit) {
                                     .background(FloatButton), // Dark Blue
                                 contentAlignment = Alignment.Center
                             ) {
-                                Image(
-                                    painter = painterResource(id = R.drawable.search_icon),
+                                Icon(
+                                    imageVector = Icons.Default.Search,
                                     contentDescription = null,
-                                    modifier = Modifier.size(20.dp)
+                                    modifier = Modifier.size(20.dp).clickable {
+                                        GoToSearch()
+                                    }, tint = Color.White
                                 )
                             }
-                            Image(
-                                painter = painterResource(id = R.drawable.person_placeholder_4),
+                            AsyncImage(
+                                model = user.value.photoUrl,
                                 contentDescription = null,
-                                modifier = Modifier.size(25.dp)
+                                modifier = Modifier.size(25.dp).clickable {
+                                    GoToProfile()
+                                }
                             )
                         }
                     }
@@ -224,13 +233,15 @@ fun HomeScreen(MoveToChatScreen: (chatId:ChatData) -> Unit) {
     }
 }
 
+
 @Composable
 fun ChatBox(chatFeature: ChatData, MoveToChatScreen: (chatId: ChatData) -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(8.dp)
-            .background(Color.Transparent).clickable {
+            .background(Color.Transparent)
+            .clickable {
                 MoveToChatScreen(chatFeature)
             },
         verticalAlignment = Alignment.CenterVertically

@@ -38,6 +38,8 @@ import javax.inject.Inject
 @HiltViewModel
 class GoogleSignInViewModel @Inject constructor(private val pingoRepo: PingoRepoImpl) : ViewModel() {
 
+
+
     fun HandleGoogleSigning(context: Context){
         viewModelScope.launch {
             pingoRepo.handleGoogleSignIn(context)

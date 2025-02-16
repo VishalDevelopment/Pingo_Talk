@@ -1,6 +1,8 @@
 package com.example.pingotalk.Model
 
-import com.google.protobuf.Timestamp
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 data class ChatData(
     val chatId: String? = null,
@@ -20,9 +22,20 @@ data class Message(
     val vidUrl: String = "",
     val progress: String = "",
     val content: String = "",
-    val time: String = "",
-    val forwarded: Boolean = false,
-)
+    val time: Long = 0, // Stored as Long in Firestore
+    val forwarded: Boolean = false
+) {
+    // Computed property to format the timestamp into "hh:mm a"
+    val timeFormatted: String
+        get() = formatTimestamp(time)
+}
+
+// Function to format timestamp
+fun formatTimestamp(timestamp: Long): String {
+    val sdf = SimpleDateFormat("hh:mm a", Locale.getDefault())
+    return sdf.format(Date(timestamp))
+}
+
 
 data class Reaction(
     val userId: String = "",

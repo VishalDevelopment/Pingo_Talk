@@ -21,9 +21,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import java.text.SimpleDateFormat
+import java.time.Instant
 import java.time.LocalDateTime
 import java.time.LocalTime
+import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
+import java.util.Date
 import java.util.Locale
 import java.util.UUID
 import javax.inject.Inject
@@ -47,7 +50,6 @@ class ChatViewModel @Inject constructor(
             .document(chatId)
             .collection("message")
             .addSnapshotListener { result, error ->
-
                 if (error != null) {
                     Log.w("MESSAGE", "Error getting chats: ${error.message}")
                     return@addSnapshotListener
@@ -55,16 +57,16 @@ class ChatViewModel @Inject constructor(
 
                 result?.let {
                     val messageList = it.toObjects(Message::class.java)
-                        .mapNotNull { message ->
-                            val parsedDateTime = parseDateTime(message.time)
-                            parsedDateTime?.let { dateTime ->
-                                message.copy(time = dateTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd hh:mm a")))
-                            }
-                        }
-                        .sortedBy { parseDateTime(it.time) } // Sorting messages by date and time
+                        .sortedBy { it.time } // Sorting in ascending order (Old → New)
 
+                    // No need to manually format `time`, as `Message` class handles it
                     viewModelScope.launch {
-                        _individualChat.emit(messageList) // Emitting sorted list
+                        _individualChat.emit(messageList) // Emit messages as they are
+                    }
+
+                    // Logging the received messages
+                    messageList.forEach { message ->
+                        Log.d("MESSAGE", "Message: ${message.content}, Time: ${message.timeFormatted}")
                     }
 
                     Log.d("MESSAGE", "Found ${messageList.size} messages for chatId: $chatId")
@@ -74,9 +76,18 @@ class ChatViewModel @Inject constructor(
             }
     }
 
+
+    // Function to format timestamp
+    fun formatTimestamp(timestamp: Long): String {
+        val sdf = SimpleDateFormat("hh:mm a", Locale.getDefault())
+        return sdf.format(Date(timestamp))
+    }
+
+
+
     fun sendMessage(chatId: ChatData, message: String) {
         val messageId = EncryptedCode()
-        val time = calculateTime()
+        val time = System.currentTimeMillis()
 
         val messageData = Message(
             msgId = messageId,
@@ -106,25 +117,6 @@ class ChatViewModel @Inject constructor(
 
             }
     }
-
-
-}
-
-// Parsing function
-fun parseDateTime(dateTimeString: String): LocalDateTime? {
-    return try {
-        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd hh:mm a", Locale.ENGLISH)
-        LocalDateTime.parse(dateTimeString, formatter)
-    } catch (e: Exception) {
-        Log.e("MESSAGE", "Error parsing date-time: ${e.message}")
-        null
-    }
-}
-
-fun calculateTime(): String {
-    val currentDateTime = LocalDateTime.now() // Get current date & time
-    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd hh:mm a") // Format with date
-    return currentDateTime.format(formatter) // Returns "2024-02-09 12:34 PM"
 }
 
 
