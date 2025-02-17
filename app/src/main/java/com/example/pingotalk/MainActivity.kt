@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
@@ -23,6 +24,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.pingotalk.Model.ChatData
+import com.example.pingotalk.Model.User
 import com.example.pingotalk.Routes.Routes
 import com.example.pingotalk.Screens.Chat_Screen.ChatScreen
 import com.example.pingotalk.Screens.Home_Screen.HomeScreen
@@ -35,6 +37,7 @@ import dagger.hilt.android.AndroidEntryPoint
 
 
 var startDestination: Any = mutableStateOf<Any>(Routes.SiginInScreen)
+var user = mutableStateOf<User?>(null)
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -49,7 +52,6 @@ class MainActivity : ComponentActivity() {
                     pingoVm.splash
                 }
             }
-
             PingoTalkTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     Column(modifier = Modifier.padding(innerPadding)) {
@@ -64,13 +66,14 @@ class MainActivity : ComponentActivity() {
     fun StartApp() {
         val navController = rememberNavController()
         var chatFeature = ChatData()
-        val destination = startDestination
+        var destination = startDestination
+
         NavHost(
             navController = navController,
             startDestination = destination
         ) {
             composable<Routes.SiginInScreen> {
-                SignInScreen(navController)
+                SignInScreen()
             }
             composable<Routes.HomeScreen> {
                 HomeScreen({ chat ->
@@ -83,7 +86,7 @@ class MainActivity : ComponentActivity() {
                     navController.navigate(Routes.ProfileScreen)
                 },{
                     navController.navigate(Routes.SearchScreen)
-                })
+                }, user.value!!)
             }
             composable<Routes.ChatScreen>(
                 enterTransition = { slideInHorizontally(initialOffsetX = { it }) },  // Slide in from right
@@ -99,6 +102,12 @@ class MainActivity : ComponentActivity() {
             ) {
                 ProfileScreen ({
                     navController.navigateUp()
+                },{
+                    navController.navigate(Routes.SiginInScreen){
+                        popUpTo(Routes.HomeScreen){
+                            inclusive =true
+                        }
+                    }
                 })
             }
 

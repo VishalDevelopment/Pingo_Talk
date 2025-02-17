@@ -7,9 +7,11 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.pingotalk.Model.User
 import com.example.pingotalk.Repo.PingoRepoImpl
 import com.example.pingotalk.Routes.Routes
 import com.example.pingotalk.startDestination
+import com.example.pingotalk.user
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
@@ -36,6 +38,14 @@ class PingoViewmodel @Inject constructor(
                 startDestination=   Routes.SiginInScreen
             } else  {
                 Log.d("SHOPVM","NOT NULL : $currentUser")
+                user.value = User(
+                    id = firebaseAuth.currentUser?.uid?:"",
+                    name = currentUser.displayName,
+                    photoUrl = currentUser?.photoUrl!!.toString(),
+                    email = currentUser.email,
+                    phoneNo = "",
+                    subscription = "free"
+                    )
                 startDestination=  Routes.HomeScreen
             }
             delay(100)

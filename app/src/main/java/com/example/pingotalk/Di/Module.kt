@@ -1,5 +1,7 @@
 package com.example.pingotalk.Di
 
+import com.example.pingotalk.Repo.PingoRepo
+import com.example.pingotalk.Repo.PingoRepoImpl
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ktx.firestore
@@ -21,4 +23,5 @@ object Module {
     fun FirebaseCloudStore():FirebaseFirestore{
         return  Firebase.firestore
     }
+
 }

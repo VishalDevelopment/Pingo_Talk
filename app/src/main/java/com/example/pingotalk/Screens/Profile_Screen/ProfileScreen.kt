@@ -32,15 +32,17 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.pingotalk.R
+import com.example.pingotalk.Screens.Profile_Screen.viewmodel.ProfileViewmodel
 import com.example.pingotalk.ui.theme.FloatButton
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileScreen(BackToHome: () -> Boolean) {
+fun ProfileScreen(BackToHome: () -> Boolean, ClearEachStack: () -> Unit) {
+    val viewmodel:ProfileViewmodel = hiltViewModel()
     Scaffold(
         topBar = {
             Box(
@@ -119,7 +121,10 @@ fun ProfileScreen(BackToHome: () -> Boolean) {
                 }
                 Spacer(modifier = Modifier.height(16.dp))
                 OutlinedButton(
-                    onClick = { /* Handle Log Out */ },
+                    onClick = {
+                        viewmodel.SignoutApp()
+                        ClearEachStack()
+                    },
                     modifier = Modifier.fillMaxWidth(0.8f),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Red)
                 ) {

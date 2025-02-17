@@ -1,13 +1,12 @@
 package com.example.pingotalk.Repo
 
 import android.content.Context
+import android.util.Log
 import android.widget.Toast
 import androidx.credentials.CredentialManager
 import androidx.credentials.CustomCredential
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialCancellationException
-import androidx.lifecycle.viewModelScope
-import androidx.navigation.NavController
 import com.example.pingotalk.Model.User
 import com.example.pingotalk.R
 import com.example.pingotalk.Routes.Routes
@@ -20,16 +19,18 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
 import java.security.MessageDigest
 import java.util.UUID
 import javax.inject.Inject
+
 
 class PingoRepoImpl @Inject constructor(
     private val firebaseAuth: FirebaseAuth,
@@ -38,68 +39,54 @@ class PingoRepoImpl @Inject constructor(
 
     private val _user = MutableStateFlow(User())
     val user = _user.asStateFlow()
-    override suspend fun handleGoogleSignIn(context: Context) {
+    override suspend fun handleGoogleSignIn(context: Context, ChangeState: (Boolean) -> Unit) {
+        ChangeState(true) // Set loading state before making API call
 
         googleSignIn(context).collect { result ->
             when (result) {
                 is State.Success -> {
                     val currentUser = result.data!!.user
                     if (currentUser != null) {
-                        _user.value = User(
-                            id = currentUser.uid,
-                            name = currentUser.displayName ?: "Unknown",
-                            photoUrl = currentUser.photoUrl?.toString() ?: "",
-                            email = currentUser.email ?: "No Email",
-                            phoneNo = currentUser.phoneNumber ?: "No Phone",
-                            subscription = "Free"
-                        )
+                        withContext(Dispatchers.IO) {
+                            val user = User(
+                                id = firebaseAuth.currentUser?.uid ?: "",
+                                name = currentUser.displayName ?: "Unknown",
+                                photoUrl = currentUser.photoUrl?.toString() ?: "",
+                                email = currentUser.email ?: "No Email",
+                                phoneNo = "",
+                                subscription = "free"
+                            )
 
-                        Toast.makeText(
-                            context,
-                            "Account Created Successfully !",
-                            Toast.LENGTH_SHORT
-                        ).show()
+                            val userCollection = firebaseStore.collection("USERS").document(currentUser.uid)
+                            val userExists = userCollection.get().await().exists()
 
-
-                        val userCollection =
-                            firebaseStore.collection("USERS").document(currentUser.uid)
-                        userCollection.get().addOnSuccessListener {
-                            if (it.exists()) {
-                                userCollection.set(_user.value!!, SetOptions.merge())
+                            if (userExists) {
+                                userCollection.set(user, SetOptions.merge()).await()
                             } else {
-                                userCollection.set(_user.value!!)
+                                userCollection.set(user).await()
                             }
-                        }.addOnFailureListener {
 
+                            withContext(Dispatchers.Main) {
+                                com.example.pingotalk.user.value = user
+                                startDestination = Routes.HomeScreen
+                                Toast.makeText(context, "Account Created Successfully!", Toast.LENGTH_SHORT).show()
+                                ChangeState(false) // Set loading state to false after success
+                            }
                         }
-
-                        startDestination = Routes.HomeScreen
-
-//                            navController.navigate(Routes.HomeScreen){
-//                                popUpTo(Routes.SiginInScreen) {
-//                                    inclusive = true
-//                                } // Removes Screen A from the back stack
-//                            }
                     } else {
-                        val message = result.message.toString()
-                        Toast.makeText(
-                            context,
-                            "something went wrong : $message!!",
-                            Toast.LENGTH_SHORT
-                        )
-                            .show()
+                        Toast.makeText(context, "Something went wrong!", Toast.LENGTH_SHORT).show()
+                        ChangeState(false) // Ensure loading stops on error
                     }
-
                 }
 
                 is State.Error -> {
-                    val message = result.message
-                    Toast.makeText(context, "something went wrong : $message!!", Toast.LENGTH_SHORT)
-                        .show()
+                    Toast.makeText(context, "Something went wrong: ${result.message}!!", Toast.LENGTH_SHORT).show()
+                    ChangeState(false) // Stop loading on error
                 }
 
                 is State.Loading -> {
-                    // Show loading UI if needed
+                    Log.d("GOOGLE", "TRUE")
+                    ChangeState(true) // Ensure loading is set to true here
                 }
             }
         }
@@ -107,6 +94,7 @@ class PingoRepoImpl @Inject constructor(
     override suspend fun googleSignIn(context: Context): Flow<State<AuthResult>> {
 
         return callbackFlow {
+            trySend(State.Loading())
             try {
                 val credentialManager = CredentialManager.create(context)
                 //Generate Nonce for security

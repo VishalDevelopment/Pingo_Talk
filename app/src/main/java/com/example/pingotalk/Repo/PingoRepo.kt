@@ -7,6 +7,6 @@ import kotlinx.coroutines.flow.Flow
 
 interface PingoRepo {
 
-    suspend fun handleGoogleSignIn(context: Context)
+    suspend fun handleGoogleSignIn(context:  Context, ChangeState: (Boolean) -> Unit)
      suspend  fun googleSignIn(context: Context): Flow<State<AuthResult>>
 }

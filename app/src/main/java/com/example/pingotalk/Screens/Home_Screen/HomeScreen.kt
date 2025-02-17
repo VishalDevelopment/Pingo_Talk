@@ -57,8 +57,10 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.example.pingotalk.Model.ChatData
+import com.example.pingotalk.Model.User
 import com.example.pingotalk.R
 import com.example.pingotalk.Screens.Home_Screen.viewmodel.HomeViewModel
+import com.example.pingotalk.Utils.ChatBox
 import com.example.pingotalk.Utils.CustomDialog
 import com.example.pingotalk.ui.theme.FloatButton
 import com.example.pingotalk.ui.theme.SkyBlue
@@ -67,14 +69,15 @@ import com.example.pingotalk.ui.theme.SkyBlue
 fun HomeScreen(
     MoveToChatScreen: (chatId: ChatData) -> Unit,
     GoToProfile: () -> Unit,
-    GoToSearch: () -> Unit
+    GoToSearch: () -> Unit,
+    user: User
 ) {
     val homeViewModel :HomeViewModel = hiltViewModel()
     LaunchedEffect(Unit){
-        homeViewModel.fetchUserData()
+//        homeViewModel.fetchUserData()
         homeViewModel.getAllChatPartners()
     }
-    val user = homeViewModel.userData.collectAsState()
+//    val user = homeViewModel.userData.collectAsState()
     val chatList = homeViewModel.chat.collectAsState()
     val showDialog = remember { mutableStateOf(false) }
     if (showDialog.value) {
@@ -130,7 +133,7 @@ fun HomeScreen(
                         Column() {
                             Text(text = "Hello", color = Color.White, fontSize = 15.sp)
                             Text(
-                                text = "${user.value.name}",
+                                text = "${user.name}",
                                 color = Color.White,
                                 fontSize = 20.sp,
                                 fontFamily = FontFamily.SansSerif
@@ -153,7 +156,7 @@ fun HomeScreen(
                                 )
                             }
                             AsyncImage(
-                                model = user.value.photoUrl,
+                                model = user.photoUrl,
                                 contentDescription = null,
                                 modifier = Modifier.size(25.dp).clickable {
                                     GoToProfile()
@@ -179,7 +182,6 @@ fun HomeScreen(
                     }
                 }
 
-                // Card containing the chat list
                 Card(
                     elevation = CardDefaults.elevatedCardElevation(0.dp),
                     modifier = Modifier
@@ -201,7 +203,6 @@ fun HomeScreen(
                             contentScale = ContentScale.FillBounds,
                             alpha = 1f // Adjust alpha for background blur effect
                         )
-
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -214,11 +215,7 @@ fun HomeScreen(
                                 color = Color.White,
                                 fontSize = 20.sp
                             )
-
-
                             LazyColumn(state = lazyScrollState) {
-
-
                                 items(chatList.value) {
                                     ChatBox(it,MoveToChatScreen)
                                 }
@@ -234,97 +231,4 @@ fun HomeScreen(
 }
 
 
-@Composable
-fun ChatBox(chatFeature: ChatData, MoveToChatScreen: (chatId: ChatData) -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(8.dp)
-            .background(Color.Transparent)
-            .clickable {
-                MoveToChatScreen(chatFeature)
-            },
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .size(48.dp)
-                .clip(CircleShape)
-                .border(1.dp, Color.White, CircleShape)
-        ) {
-            AsyncImage(
-                model = "${chatFeature.user2.ppurl}",
-                contentDescription = null,
-                modifier = Modifier.fillMaxSize()
-            )
-        }
 
-        Spacer(modifier = Modifier.width(8.dp))
-
-        Column(
-            modifier = Modifier.weight(1f)
-        ) {
-            Text(
-                text = "${chatFeature.user2.username}",
-                color = Color.White,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold
-            )
-            if (chatFeature.last?.content != "") {
-                Text(
-                    text = "${chatFeature.last?.content}",
-                    color = Color.White,
-                    fontSize = 12.sp
-                )
-            } else {
-                Text(
-                    text = "${chatFeature.user2.bio}",
-                    color = Color.White,
-                    fontSize = 12.sp
-                )
-            }
-
-        }
-
-        Column(
-            horizontalAlignment = Alignment.End
-        ) {
-            if (chatFeature.last?.time == null) {
-                Text(
-                    text = "",
-                    color = Color.White,
-                    fontSize = 12.sp
-                )
-            } else {
-                Text(
-                    text = "${chatFeature.last.time}",
-                    color = Color.White,
-                    fontSize = 12.sp
-                )
-            }
-
-            Spacer(modifier = Modifier.height(4.dp))
-            if (chatFeature.user2.unread > 0) {
-                Box(
-                    modifier = Modifier
-                        .size(20.dp)
-                        .clip(CircleShape)
-                        .background(SkyBlue),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(text = "${chatFeature.user2.unread}", color = Color.White, fontSize = 8.sp)
-                }
-            } else {
-                Text(text = "", color = Color.White, fontSize = 8.sp)
-            }
-        }
-    }
-}
-
-
-data class ChatFeature(
-    val name: String,
-    val message: String,
-    val time: String,
-    val totalMessage: String,
-)
