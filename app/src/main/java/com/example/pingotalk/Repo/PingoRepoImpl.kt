@@ -7,35 +7,48 @@ import androidx.credentials.CredentialManager
 import androidx.credentials.CustomCredential
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialCancellationException
+import androidx.lifecycle.viewModelScope
+import com.example.pingotalk.Model.ChatData
+import com.example.pingotalk.Model.ChatUser
+import com.example.pingotalk.Model.Message
 import com.example.pingotalk.Model.User
 import com.example.pingotalk.R
 import com.example.pingotalk.Routes.Routes
 import com.example.pingotalk.State
-import com.example.pingotalk.startDestination
+
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.firebase.auth.AuthResult
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.firestore.Filter
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.firestore.MetadataChanges
 import com.google.firebase.firestore.SetOptions
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import java.security.MessageDigest
 import java.util.UUID
 import javax.inject.Inject
+import javax.inject.Singleton
 
 
+@Singleton
 class PingoRepoImpl @Inject constructor(
     private val firebaseAuth: FirebaseAuth,
     private val firebaseStore: FirebaseFirestore,
 ) : PingoRepo {
+
+    val startDestination = MutableStateFlow<Routes>(Routes.SiginInScreen)
 
     private val _user = MutableStateFlow(User())
     val user = _user.asStateFlow()
@@ -68,7 +81,7 @@ class PingoRepoImpl @Inject constructor(
 
                             withContext(Dispatchers.Main) {
                                 com.example.pingotalk.user.value = user
-                                startDestination = Routes.HomeScreen
+                                startDestination.value = Routes.HomeScreen
                                 Toast.makeText(context, "Account Created Successfully!", Toast.LENGTH_SHORT).show()
                                 ChangeState(false) // Set loading state to false after success
                             }
@@ -138,5 +151,146 @@ class PingoRepoImpl @Inject constructor(
         }
     }
 
+
+
+    private val _chat = MutableStateFlow<List<ChatData>>(emptyList())
+    val chat = _chat.asStateFlow()
+    private var chatListener: ListenerRegistration? = null
+    override fun getAllChatPartners() {
+        val currentUserId = firebaseAuth.currentUser?.uid
+        if (currentUserId != null) {
+            chatListener?.remove()
+
+            chatListener = firebaseStore.collection("CHATS")
+                .document(currentUserId)
+                .collection("chats")
+                .addSnapshotListener { result, error ->
+
+                    if (error != null) {
+                        Log.w("Chats", "Error getting chats for user $currentUserId", error)
+                        return@addSnapshotListener
+                    }
+
+                    result?.let {
+                        val chatList = it.toObjects(ChatData::class.java)
+
+                        // Emit inside a coroutine scope
+                        CoroutineScope(Dispatchers.IO).launch {
+                            _chat.emit(chatList)
+                        }
+
+                        Log.d("Chats", "Found ${chatList.size} chats for user $currentUserId")
+                    } ?: run {
+                        Log.d("Chats", "No chats found for user $currentUserId")
+                    }
+                }
+        }
+    }
+
+    private val _userData = MutableStateFlow<User>(User())
+    val userData = _userData.asStateFlow()
+    private var userDataListener: ListenerRegistration? = null
+    override fun fetchUserData() {
+            val currentUserId = firebaseAuth.currentUser?.uid
+            if (currentUserId != null) {
+                userDataListener = firebaseStore.collection("USERS")
+                    .document(currentUserId)
+                    .addSnapshotListener(MetadataChanges.INCLUDE) { document, error ->
+
+                        document?.let {
+                            val user = document.toObject(User::class.java)
+                            if (document.exists() && user != null) {
+                                _userData.value = user
+                                Log.d("VM", "User data updated: $user")
+                            } else {
+                                Log.d("VM", "Document does not exist")
+                            }
+                        }
+                        error?.let {
+                            Log.d("VM", "Error fetching user data: ${error.message}")
+                        }
+                    }
+        }
+    }
+    override fun addChatPartner(email: String) {
+        firebaseStore.collection("CHATS").where(
+            Filter.or(
+                Filter.and(
+                    Filter.equalTo("user1.email", email),
+                    Filter.equalTo("user2.email", userData.value?.email)
+                ),
+                Filter.equalTo("user2.email", email),
+                Filter.equalTo("user1.email", userData.value?.email)
+            )
+        ).get().addOnSuccessListener {
+
+            if (it.isEmpty) {
+                firebaseStore.collection("USERS").whereEqualTo("email", email).get()
+                    .addOnSuccessListener { userSnapshot ->
+                        if (userSnapshot.isEmpty) {
+                            Log.d("AddChat", "User not exist on USER Firestore")
+                        } else {
+                            val chatPartner = userSnapshot.toObjects(User::class.java).firstOrNull()
+                            val id = firebaseStore.collection("CHATS").document()
+                            val chat = ChatData(
+                                chatId = id.id,
+                                last = Message(senderId = "", content = "You added ${chatPartner!!.name}", time = 0),
+                                user1 = ChatUser(
+                                    userId = userData.value!!.id.toString(),
+                                    typing = false,
+                                    bio = "",
+                                    username = userData.value!!.name.toString(),
+                                    ppurl = userData.value!!.photoUrl.toString(),
+                                    email = userData.value!!.email.toString(),
+                                ),
+                                user2 = ChatUser(
+                                    userId = chatPartner?.id ?: "",
+                                    typing = false,
+                                    bio = "",
+                                    username = chatPartner?.name ?: "",
+                                    ppurl = chatPartner?.photoUrl ?: "",
+                                    email = chatPartner?.email ?: "",
+                                    status = false,
+                                    unread = 0
+                                )
+                            )
+
+                            firebaseStore.collection("CHATS")
+                                .document(userData.value?.id!!)
+                                .collection("chats")
+                                .document(id.id)
+                                .set(chat)
+
+
+                            val chatForPartner = ChatData(
+                                chatId = id.id,
+                                last = Message(senderId = "", content = "${firebaseAuth.currentUser!!.displayName} added You", time = 0),
+                                user2 = ChatUser(
+                                    userId = userData.value!!.id.toString(),
+                                    typing = false,
+                                    bio = "",
+                                    username = userData.value!!.name.toString(),
+                                    ppurl = userData.value!!.photoUrl.toString(),
+                                    email = userData.value!!.email.toString(),
+                                ),
+                                user1 = ChatUser(
+                                    userId = chatPartner?.id ?: "",
+                                    typing = false,
+                                    bio = "",
+                                    username = chatPartner?.name ?: "",
+                                    ppurl = chatPartner?.photoUrl ?: "",
+                                    email = chatPartner?.email ?: "",
+                                    status = false,
+                                    unread = 0
+                                )
+                            )
+
+                            firebaseStore.collection("CHATS").document(chatPartner!!.id.toString())
+                                .collection("chats").document(id.id).set(chatForPartner)
+                        }
+                    }
+            }
+        }
+    }
 
 }

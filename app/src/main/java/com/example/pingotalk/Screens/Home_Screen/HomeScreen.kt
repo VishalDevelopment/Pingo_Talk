@@ -73,15 +73,13 @@ fun HomeScreen(
     user: User
 ) {
     val homeViewModel :HomeViewModel = hiltViewModel()
-    LaunchedEffect(Unit){
-//        homeViewModel.fetchUserData()
-        homeViewModel.getAllChatPartners()
-    }
-//    val user = homeViewModel.userData.collectAsState()
-    val chatList = homeViewModel.chat.collectAsState()
+//    LaunchedEffect(Unit){
+//        homeViewModel.observeChatPartners()
+//    }
+    val chatList = homeViewModel._chat.collectAsState()
     val showDialog = remember { mutableStateOf(false) }
     if (showDialog.value) {
-        CustomDialog({ showDialog.value = false }, { email -> homeViewModel.addChatPartner(email) })
+        CustomDialog({ showDialog.value = false }, { email -> homeViewModel.addPartner(email) })
     }
 
     Scaffold(floatingActionButton = {
@@ -150,17 +148,21 @@ fun HomeScreen(
                                 Icon(
                                     imageVector = Icons.Default.Search,
                                     contentDescription = null,
-                                    modifier = Modifier.size(20.dp).clickable {
-                                        GoToSearch()
-                                    }, tint = Color.White
+                                    modifier = Modifier
+                                        .size(20.dp)
+                                        .clickable {
+                                            GoToSearch()
+                                        }, tint = Color.White
                                 )
                             }
                             AsyncImage(
                                 model = user.photoUrl,
                                 contentDescription = null,
-                                modifier = Modifier.size(25.dp).clickable {
-                                    GoToProfile()
-                                }
+                                modifier = Modifier
+                                    .size(25.dp)
+                                    .clickable {
+                                        GoToProfile()
+                                    }
                             )
                         }
                     }

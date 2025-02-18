@@ -1,6 +1,7 @@
 package com.example.pingotalk
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
@@ -36,9 +38,7 @@ import com.example.pingotalk.ui.theme.PingoTalkTheme
 import dagger.hilt.android.AndroidEntryPoint
 
 
-var startDestination: Any = mutableStateOf<Any>(Routes.SiginInScreen)
 var user = mutableStateOf<User?>(null)
-
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -55,7 +55,7 @@ class MainActivity : ComponentActivity() {
             PingoTalkTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     Column(modifier = Modifier.padding(innerPadding)) {
-                        StartApp()
+                        StartApp(pingoVm)
                     }
                 }
             }
@@ -63,11 +63,14 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    fun StartApp() {
+    fun StartApp(pingoVm: PingoViewmodel) {
         val navController = rememberNavController()
         var chatFeature = ChatData()
-        var destination = startDestination
+        var destination =pingoVm.startDestination.collectAsState().value
 
+        LaunchedEffect(destination) {
+            Log.d("PINGO","destination : $destination")
+        }
         NavHost(
             navController = navController,
             startDestination = destination
@@ -89,8 +92,8 @@ class MainActivity : ComponentActivity() {
                 }, user.value!!)
             }
             composable<Routes.ChatScreen>(
-                enterTransition = { slideInHorizontally(initialOffsetX = { it }) },  // Slide in from right
-                exitTransition = { slideOutHorizontally(targetOffsetX = { it }) }    // Slide out to right
+                enterTransition = { slideInHorizontally(initialOffsetX = { it }) },
+                exitTransition = { slideOutHorizontally(targetOffsetX = { it }) }
             ) {
                 ChatScreen(chatFeature) {
                     navController.navigateUp()
@@ -108,7 +111,7 @@ class MainActivity : ComponentActivity() {
                             inclusive =true
                         }
                     }
-                })
+                }, user)
             }
 
             composable<Routes.SearchScreen>(

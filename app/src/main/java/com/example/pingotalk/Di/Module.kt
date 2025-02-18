@@ -16,12 +16,18 @@ import javax.inject.Singleton
 @Module
 object Module {
     @Provides
+    @Singleton
     fun FirebaseAuthInstance():FirebaseAuth{
         return FirebaseAuth.getInstance()
     }
     @Provides
+    @Singleton
     fun FirebaseCloudStore():FirebaseFirestore{
         return  Firebase.firestore
     }
-
+    @Provides
+    @Singleton
+    fun providePingoRepo(firebaseAuth: FirebaseAuth, firebaseStore: FirebaseFirestore): PingoRepoImpl {
+        return PingoRepoImpl(firebaseAuth, firebaseStore)
+    }
 }

@@ -13,11 +13,8 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class GoogleSignInViewModel @Inject constructor(private val pingoRepo: PingoRepoImpl) : ViewModel() {
+class GoogleSignInViewModel @Inject constructor(var pingoRepo: PingoRepoImpl) : ViewModel() {
     val siginLoading = MutableStateFlow(false)
-
-
-
     fun HandleGoogleSigning(context: Context){
         viewModelScope.launch {
             siginLoading.value = true

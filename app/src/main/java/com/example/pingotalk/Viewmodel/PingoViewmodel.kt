@@ -10,21 +10,25 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.pingotalk.Model.User
 import com.example.pingotalk.Repo.PingoRepoImpl
 import com.example.pingotalk.Routes.Routes
-import com.example.pingotalk.startDestination
+
 import com.example.pingotalk.user
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class PingoViewmodel @Inject constructor(
     private val firebaseAuth: FirebaseAuth,
-    private val pingoRepoImpl: PingoRepoImpl
+    private val pingoRepoImpl:  PingoRepoImpl
 ):ViewModel() {
 
+
     var splash by mutableStateOf(true)
+    val startDestination = pingoRepoImpl.startDestination.asStateFlow()
     init {
         checkLoginStatus()
     }
@@ -35,7 +39,7 @@ class PingoViewmodel @Inject constructor(
 
             if (currentUser == null) {
                 Log.d("SHOPVM","NULL : $currentUser")
-                startDestination=   Routes.SiginInScreen
+
             } else  {
                 Log.d("SHOPVM","NOT NULL : $currentUser")
                 user.value = User(
@@ -46,14 +50,12 @@ class PingoViewmodel @Inject constructor(
                     phoneNo = "",
                     subscription = "free"
                     )
-                startDestination=  Routes.HomeScreen
+                pingoRepoImpl.fetchUserData()
+                pingoRepoImpl.getAllChatPartners()
+                pingoRepoImpl.startDestination.value=   Routes.SiginInScreen
             }
-            delay(100)
+            delay(500)
             splash = false
         }
-
     }
-
-
-
 }
