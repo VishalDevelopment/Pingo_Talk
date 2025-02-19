@@ -38,8 +38,8 @@ class PingoViewmodel @Inject constructor(
         viewModelScope.launch {
 
             if (currentUser == null) {
+                pingoRepoImpl.startDestination.emit(Routes.SiginInScreen)
                 Log.d("SHOPVM","NULL : $currentUser")
-
             } else  {
                 Log.d("SHOPVM","NOT NULL : $currentUser")
                 user.value = User(
@@ -52,7 +52,7 @@ class PingoViewmodel @Inject constructor(
                     )
                 pingoRepoImpl.fetchUserData()
                 pingoRepoImpl.getAllChatPartners()
-                pingoRepoImpl.startDestination.value=   Routes.SiginInScreen
+                pingoRepoImpl.startDestination.emit(Routes.HomeScreen)
             }
             delay(500)
             splash = false

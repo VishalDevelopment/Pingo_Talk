@@ -47,7 +47,7 @@ import com.example.pingotalk.ui.theme.FloatButton
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileScreen(BackToHome: () -> Boolean, ClearEachStack: () -> Unit, user: MutableState<User?>) {
+fun ProfileScreen(BackToHome: () -> Boolean,user: MutableState<User?>) {
     val viewmodel:ProfileViewmodel = hiltViewModel()
     Scaffold(
         topBar = {
@@ -132,7 +132,6 @@ fun ProfileScreen(BackToHome: () -> Boolean, ClearEachStack: () -> Unit, user: M
                 OutlinedButton(
                     onClick = {
                         viewmodel.SignoutApp()
-                        ClearEachStack()
                     },
                     modifier = Modifier.fillMaxWidth(0.8f),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Red)

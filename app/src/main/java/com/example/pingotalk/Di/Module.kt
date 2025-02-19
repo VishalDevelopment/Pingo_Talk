@@ -6,6 +6,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
+import com.google.firebase.messaging.FirebaseMessaging
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -17,17 +18,29 @@ import javax.inject.Singleton
 object Module {
     @Provides
     @Singleton
-    fun FirebaseAuthInstance():FirebaseAuth{
+    fun FirebaseAuthInstance(): FirebaseAuth {
         return FirebaseAuth.getInstance()
     }
+
     @Provides
     @Singleton
-    fun FirebaseCloudStore():FirebaseFirestore{
-        return  Firebase.firestore
+    fun FirebaseCloudStore(): FirebaseFirestore {
+        return Firebase.firestore
     }
+
     @Provides
     @Singleton
-    fun providePingoRepo(firebaseAuth: FirebaseAuth, firebaseStore: FirebaseFirestore): PingoRepoImpl {
-        return PingoRepoImpl(firebaseAuth, firebaseStore)
+    fun providePingoRepo(
+        firebaseAuth: FirebaseAuth,
+        firebaseStore: FirebaseFirestore,
+        firebaseMessaging: FirebaseMessaging
+    ): PingoRepoImpl {
+        return PingoRepoImpl(firebaseAuth, firebaseStore,firebaseMessaging)
+    }
+
+    @Provides
+    @Singleton
+    fun FirebaseFcm(): FirebaseMessaging {
+        return FirebaseMessaging.getInstance()
     }
 }

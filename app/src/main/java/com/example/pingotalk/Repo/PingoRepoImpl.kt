@@ -15,7 +15,6 @@ import com.example.pingotalk.Model.User
 import com.example.pingotalk.R
 import com.example.pingotalk.Routes.Routes
 import com.example.pingotalk.State
-
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.firebase.auth.AuthResult
@@ -26,6 +25,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.MetadataChanges
 import com.google.firebase.firestore.SetOptions
+import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
@@ -46,9 +46,32 @@ import javax.inject.Singleton
 class PingoRepoImpl @Inject constructor(
     private val firebaseAuth: FirebaseAuth,
     private val firebaseStore: FirebaseFirestore,
+    private val firebaseFcm: FirebaseMessaging,
 ) : PingoRepo {
-
     val startDestination = MutableStateFlow<Routes>(Routes.SiginInScreen)
+
+
+    // Handle FCM Token
+    override suspend fun updateToken(Newtoken:String?) {
+        val currentUser = firebaseAuth.currentUser
+        val token = Newtoken ?: firebaseFcm.token.await()
+        if (currentUser != null) {
+            if (currentUser!!.uid != null && token != null) {
+                val user = User(
+                    id = firebaseAuth.currentUser?.uid ?: "",
+                    name = currentUser.displayName ?: "Unknown",
+                    photoUrl = currentUser.photoUrl?.toString() ?: "",
+                    email = currentUser.email ?: "No Email",
+                    phoneNo = "",
+                    subscription = "free",
+                    FCM = token
+                )
+                firebaseStore.collection("USERS").document(currentUser.uid)
+                    .set(user, SetOptions.merge()).await()
+            }
+        }
+    }
+
 
     private val _user = MutableStateFlow(User())
     val user = _user.asStateFlow()
@@ -67,10 +90,12 @@ class PingoRepoImpl @Inject constructor(
                                 photoUrl = currentUser.photoUrl?.toString() ?: "",
                                 email = currentUser.email ?: "No Email",
                                 phoneNo = "",
-                                subscription = "free"
+                                subscription = "free",
+                                FCM = ""
                             )
 
-                            val userCollection = firebaseStore.collection("USERS").document(currentUser.uid)
+                            val userCollection =
+                                firebaseStore.collection("USERS").document(currentUser.uid)
                             val userExists = userCollection.get().await().exists()
 
                             if (userExists) {
@@ -78,11 +103,15 @@ class PingoRepoImpl @Inject constructor(
                             } else {
                                 userCollection.set(user).await()
                             }
-
+                            updateToken(null)
                             withContext(Dispatchers.Main) {
                                 com.example.pingotalk.user.value = user
-                                startDestination.value = Routes.HomeScreen
-                                Toast.makeText(context, "Account Created Successfully!", Toast.LENGTH_SHORT).show()
+                                    startDestination.emit(Routes.HomeScreen)
+                                Toast.makeText(
+                                    context,
+                                    "Account Created Successfully!",
+                                    Toast.LENGTH_SHORT
+                                ).show()
                                 ChangeState(false) // Set loading state to false after success
                             }
                         }
@@ -93,7 +122,11 @@ class PingoRepoImpl @Inject constructor(
                 }
 
                 is State.Error -> {
-                    Toast.makeText(context, "Something went wrong: ${result.message}!!", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        context,
+                        "Something went wrong: ${result.message}!!",
+                        Toast.LENGTH_SHORT
+                    ).show()
                     ChangeState(false) // Stop loading on error
                 }
 
@@ -104,6 +137,7 @@ class PingoRepoImpl @Inject constructor(
             }
         }
     }
+
     override suspend fun googleSignIn(context: Context): Flow<State<AuthResult>> {
 
         return callbackFlow {
@@ -151,8 +185,6 @@ class PingoRepoImpl @Inject constructor(
         }
     }
 
-
-
     private val _chat = MutableStateFlow<List<ChatData>>(emptyList())
     val chat = _chat.asStateFlow()
     private var chatListener: ListenerRegistration? = null
@@ -191,27 +223,28 @@ class PingoRepoImpl @Inject constructor(
     val userData = _userData.asStateFlow()
     private var userDataListener: ListenerRegistration? = null
     override fun fetchUserData() {
-            val currentUserId = firebaseAuth.currentUser?.uid
-            if (currentUserId != null) {
-                userDataListener = firebaseStore.collection("USERS")
-                    .document(currentUserId)
-                    .addSnapshotListener(MetadataChanges.INCLUDE) { document, error ->
+        val currentUserId = firebaseAuth.currentUser?.uid
+        if (currentUserId != null) {
+            userDataListener = firebaseStore.collection("USERS")
+                .document(currentUserId)
+                .addSnapshotListener(MetadataChanges.INCLUDE) { document, error ->
 
-                        document?.let {
-                            val user = document.toObject(User::class.java)
-                            if (document.exists() && user != null) {
-                                _userData.value = user
-                                Log.d("VM", "User data updated: $user")
-                            } else {
-                                Log.d("VM", "Document does not exist")
-                            }
-                        }
-                        error?.let {
-                            Log.d("VM", "Error fetching user data: ${error.message}")
+                    document?.let {
+                        val user = document.toObject(User::class.java)
+                        if (document.exists() && user != null) {
+                            _userData.value = user
+                            Log.d("VM", "User data updated: $user")
+                        } else {
+                            Log.d("VM", "Document does not exist")
                         }
                     }
+                    error?.let {
+                        Log.d("VM", "Error fetching user data: ${error.message}")
+                    }
+                }
         }
     }
+
     override fun addChatPartner(email: String) {
         firebaseStore.collection("CHATS").where(
             Filter.or(
@@ -234,7 +267,11 @@ class PingoRepoImpl @Inject constructor(
                             val id = firebaseStore.collection("CHATS").document()
                             val chat = ChatData(
                                 chatId = id.id,
-                                last = Message(senderId = "", content = "You added ${chatPartner!!.name}", time = 0),
+                                last = Message(
+                                    senderId = "",
+                                    content = "You added ${chatPartner!!.name}",
+                                    time = 0
+                                ),
                                 user1 = ChatUser(
                                     userId = userData.value!!.id.toString(),
                                     typing = false,
@@ -264,7 +301,11 @@ class PingoRepoImpl @Inject constructor(
 
                             val chatForPartner = ChatData(
                                 chatId = id.id,
-                                last = Message(senderId = "", content = "${firebaseAuth.currentUser!!.displayName} added You", time = 0),
+                                last = Message(
+                                    senderId = "",
+                                    content = "${firebaseAuth.currentUser!!.displayName} added You",
+                                    time = 0
+                                ),
                                 user2 = ChatUser(
                                     userId = userData.value!!.id.toString(),
                                     typing = false,
@@ -293,4 +334,79 @@ class PingoRepoImpl @Inject constructor(
         }
     }
 
+    override fun sendMessage(chatId: ChatData, message: String) {
+        val userId = firebaseAuth.currentUser!!.uid
+        val messageId = EncryptedCode()
+        val time = System.currentTimeMillis()
+
+        val messageData = Message(
+            msgId = messageId,
+            senderId = userId,
+            time = time,
+            content = message
+        )
+
+        firebaseStore.collection("MESSAGE").document(chatId.chatId.toString()).collection("message")
+            .document(messageId).set(messageData)
+            .addOnCompleteListener {
+                if (it.isSuccessful) {
+                    try {
+                        firebaseStore.collection("CHATS").document(userId).collection("chats")
+                            .document(chatId.chatId.toString())
+                            .update("last", messageData)
+                        firebaseStore.collection("CHATS").document(chatId.user2.userId)
+                            .collection("chats")
+                            .document(chatId.chatId.toString())
+                            .update("last", messageData)
+
+                        Log.d("MESSAGE", "message sent : ")
+                    } catch (e: Exception) {
+                        Log.d("MESSAGE", "exception : ${e.message}")
+                    }
+                } else {
+                    Log.d("MESSAGE", "message sent : ")
+                }
+
+            }
+    }
+
+    private val _individualChat = MutableStateFlow<List<Message>>(emptyList())
+    val individualChat = _individualChat.asStateFlow()
+    var individualChatListener: ListenerRegistration? = null
+    override fun receiveMessages(chatId: String) {
+        individualChatListener?.remove()
+        individualChatListener = firebaseStore.collection("MESSAGE")
+            .document(chatId)
+            .collection("message")
+            .addSnapshotListener { result, error ->
+                if (error != null) {
+                    Log.w("MESSAGE", "Error getting chats: ${error.message}")
+                    return@addSnapshotListener
+                }
+
+                result?.let {
+                    val messageList = it.toObjects(Message::class.java)
+                        .sortedBy { it.time }
+                    CoroutineScope(Dispatchers.IO).launch {
+                        _individualChat.emit(messageList)
+                    }
+                    messageList.forEach { message ->
+                        Log.d(
+                            "MESSAGE",
+                            "Message: ${message.content}, Time: ${message.timeFormatted}"
+                        )
+                    }
+
+                    Log.d("MESSAGE", "Found ${messageList.size} messages for chatId: $chatId")
+                } ?: run {
+                    Log.d("MESSAGE", "Firestore result is null")
+                }
+            }
+    }
+
+}
+
+fun EncryptedCode(): String {
+    val messageId = UUID.randomUUID().toString()
+    return messageId
 }

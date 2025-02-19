@@ -65,6 +65,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.1")
     implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore.ktx)
+    implementation(libs.firebase.messaging)
 //Dagger Hilt
     kapt("com.google.dagger:hilt-android-compiler:2.50")
     implementation("com.google.dagger:hilt-android:2.50")

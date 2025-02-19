@@ -1,6 +1,7 @@
 package com.example.pingotalk.Screens.Chat_Screen
 
 import android.util.Log
+import android.view.WindowInsets
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -16,7 +17,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.layout.wrapContentWidth
@@ -75,20 +78,16 @@ fun ChatScreen(chatFeatures: ChatData, BackToHomeScreen: () -> Unit) {
     LaunchedEffect(Unit) {
         if (chatFeatures.chatId.toString() != null) {
             if (chatFeatures.chatId.toString() != "") {
-                chatViewModel.receiveMessages(chatFeatures.chatId.toString())
+                chatViewModel
             } else {
                 Log.d("CHATID", "chat Id is empty")
             }
-        } else {
-            Log.d("CHATID", "chat Id isnull")
-
         }
     }
     val messageList = chatViewModel.individualChat.collectAsState()
 
-    Log.d("CHATSCREEN", "chats : ${messageList.value}")
-
-    Scaffold(topBar = {
+    Scaffold(    modifier = Modifier.windowInsetsPadding(androidx.compose.foundation.layout.WindowInsets.systemBars),
+        topBar = {
         CenterAlignedTopAppBar(navigationIcon = {
             IconButton(onClick = {
                 BackToHomeScreen()

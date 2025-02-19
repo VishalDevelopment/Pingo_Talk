@@ -66,6 +66,7 @@ import com.example.pingotalk.ui.theme.FloatButton
 import com.example.pingotalk.ui.theme.SkyBlue
 
 @Composable
+@Stable
 fun HomeScreen(
     MoveToChatScreen: (chatId: ChatData) -> Unit,
     GoToProfile: () -> Unit,
