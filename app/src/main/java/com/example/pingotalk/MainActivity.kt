@@ -68,7 +68,6 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    @Stable
     fun StartApp(pingoVm: PingoViewmodel) {
         val navController = rememberNavController()
         var chatFeature = ChatData()

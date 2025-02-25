@@ -53,4 +53,5 @@ data class ChatUser(
     val email: String = "",
     val status: Boolean = false,
     val unread: Int = 0,
+    val fcm :String =""
 )

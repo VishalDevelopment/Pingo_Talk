@@ -25,14 +25,7 @@ class HomeViewModel @Inject constructor(
     private val repoImpl: PingoRepoImpl
 ) : ViewModel() {
     val _chat = repoImpl.chat
-//    fun observeChatPartners() {
-//        viewModelScope.launch {
-//            repoImpl.getAllChatPartners()
-//            repoImpl.chat.collect { chatList ->
-//                _chat.value = chatList
-//            }
-//        }
-//    }
+
 
     fun addPartner(email:String){
         viewModelScope.launch {

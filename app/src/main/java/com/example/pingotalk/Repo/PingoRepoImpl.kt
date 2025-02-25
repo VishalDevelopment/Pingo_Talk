@@ -8,11 +8,15 @@ import androidx.credentials.CustomCredential
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.lifecycle.viewModelScope
+import coil.network.HttpException
 import com.example.pingotalk.Model.ChatData
 import com.example.pingotalk.Model.ChatUser
 import com.example.pingotalk.Model.Message
+import com.example.pingotalk.Model.Notification
+import com.example.pingotalk.Model.NotificationResponse
 import com.example.pingotalk.Model.User
 import com.example.pingotalk.R
+import com.example.pingotalk.Retrofit.ApiServices
 import com.example.pingotalk.Routes.Routes
 import com.example.pingotalk.State
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
@@ -34,22 +38,32 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.descriptors.PrimitiveKind
 import java.security.MessageDigest
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
-
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.Response
+import org.json.JSONObject
+import retrofit2.Call
+import retrofit2.Callback
+import kotlin.concurrent.thread
 
 @Singleton
 class PingoRepoImpl @Inject constructor(
+    private val pingoService : ApiServices,
     private val firebaseAuth: FirebaseAuth,
     private val firebaseStore: FirebaseFirestore,
     private val firebaseFcm: FirebaseMessaging,
 ) : PingoRepo {
     val startDestination = MutableStateFlow<Routes>(Routes.SiginInScreen)
-
 
     // Handle FCM Token
     override suspend fun updateToken(Newtoken:String?) {
@@ -64,7 +78,7 @@ class PingoRepoImpl @Inject constructor(
                     email = currentUser.email ?: "No Email",
                     phoneNo = "",
                     subscription = "free",
-                    FCM = token
+                    fcm= token
                 )
                 firebaseStore.collection("USERS").document(currentUser.uid)
                     .set(user, SetOptions.merge()).await()
@@ -91,7 +105,7 @@ class PingoRepoImpl @Inject constructor(
                                 email = currentUser.email ?: "No Email",
                                 phoneNo = "",
                                 subscription = "free",
-                                FCM = ""
+                                fcm = ""
                             )
 
                             val userCollection =
@@ -232,6 +246,7 @@ class PingoRepoImpl @Inject constructor(
                     document?.let {
                         val user = document.toObject(User::class.java)
                         if (document.exists() && user != null) {
+                            Log.d("FCM","Fetch User : $user")
                             _userData.value = user
                             Log.d("VM", "User data updated: $user")
                         } else {
@@ -246,88 +261,101 @@ class PingoRepoImpl @Inject constructor(
     }
 
     override fun addChatPartner(email: String) {
+        // Use Filter.or() with proper structure. Make sure the logic matches your needs.
         firebaseStore.collection("CHATS").where(
             Filter.or(
                 Filter.and(
                     Filter.equalTo("user1.email", email),
-                    Filter.equalTo("user2.email", userData.value?.email)
+                    Filter.equalTo("user2.email", userData.value.email)
                 ),
                 Filter.equalTo("user2.email", email),
-                Filter.equalTo("user1.email", userData.value?.email)
+                Filter.equalTo("user1.email", userData.value.email)
             )
-        ).get().addOnSuccessListener {
-
-            if (it.isEmpty) {
+        ).get().addOnSuccessListener { querySnapshot ->
+            if (querySnapshot.isEmpty) {
                 firebaseStore.collection("USERS").whereEqualTo("email", email).get()
                     .addOnSuccessListener { userSnapshot ->
+
+                        Log.d("FCM","Add : ${ userSnapshot.toObjects(User::class.java)}")
+
                         if (userSnapshot.isEmpty) {
-                            Log.d("AddChat", "User not exist on USER Firestore")
+                            Log.d("AddChat", "User does not exist in USERS Firestore")
                         } else {
                             val chatPartner = userSnapshot.toObjects(User::class.java).firstOrNull()
                             val id = firebaseStore.collection("CHATS").document()
+                            Log.d("NOTIFICATION", "Chat partner: $chatPartner")
+                            if (chatPartner == null) {
+                                Log.d("AddChat", "Chat partner is null")
+                                return@addOnSuccessListener
+                            }
                             val chat = ChatData(
                                 chatId = id.id,
                                 last = Message(
                                     senderId = "",
-                                    content = "You added ${chatPartner!!.name}",
+                                    content = "You added ${chatPartner.name}",
                                     time = 0
                                 ),
                                 user1 = ChatUser(
-                                    userId = userData.value!!.id.toString(),
+                                    userId = userData.value.id!!,
                                     typing = false,
                                     bio = "",
-                                    username = userData.value!!.name.toString(),
-                                    ppurl = userData.value!!.photoUrl.toString(),
-                                    email = userData.value!!.email.toString(),
+                                    username = userData.value.name,
+                                    ppurl = userData.value.photoUrl!!,
+                                    email = userData.value.email!!,
                                 ),
                                 user2 = ChatUser(
-                                    userId = chatPartner?.id ?: "",
+                                    userId = chatPartner.id!!,
                                     typing = false,
                                     bio = "",
-                                    username = chatPartner?.name ?: "",
-                                    ppurl = chatPartner?.photoUrl ?: "",
-                                    email = chatPartner?.email ?: "",
+                                    username = chatPartner.name,
+                                    ppurl = chatPartner.photoUrl!!,
+                                    email = chatPartner.email!!,
                                     status = false,
-                                    unread = 0
+                                    unread = 0,
+                                    fcm =chatPartner.fcm!! // Ensure this field is non-null in Firestore
                                 )
                             )
+                            Log.d("FCM","user 1 : ${chat.user1.fcm} user 2 : ${chatPartner.fcm}")
 
+                            // Write chat for current user
                             firebaseStore.collection("CHATS")
-                                .document(userData.value?.id!!)
+                                .document(userData.value.id!!)
                                 .collection("chats")
                                 .document(id.id)
                                 .set(chat)
 
-
+                            // Create a separate chat document for the chat partner
                             val chatForPartner = ChatData(
                                 chatId = id.id,
                                 last = Message(
                                     senderId = "",
-                                    content = "${firebaseAuth.currentUser!!.displayName} added You",
+                                    content = "${firebaseAuth.currentUser?.displayName} added You",
                                     time = 0
                                 ),
                                 user2 = ChatUser(
-                                    userId = userData.value!!.id.toString(),
+                                    userId = userData.value.id!!,
                                     typing = false,
                                     bio = "",
-                                    username = userData.value!!.name.toString(),
-                                    ppurl = userData.value!!.photoUrl.toString(),
-                                    email = userData.value!!.email.toString(),
+                                    username = userData.value.name,
+                                    ppurl = userData.value.photoUrl!!,
+                                    email = userData.value.email!!,
                                 ),
                                 user1 = ChatUser(
-                                    userId = chatPartner?.id ?: "",
+                                    userId = chatPartner.id,
                                     typing = false,
                                     bio = "",
-                                    username = chatPartner?.name ?: "",
-                                    ppurl = chatPartner?.photoUrl ?: "",
-                                    email = chatPartner?.email ?: "",
+                                    username = chatPartner.name,
+                                    ppurl = chatPartner.photoUrl,
+                                    email = chatPartner.email,
                                     status = false,
                                     unread = 0
                                 )
                             )
-
-                            firebaseStore.collection("CHATS").document(chatPartner!!.id.toString())
-                                .collection("chats").document(id.id).set(chatForPartner)
+                            firebaseStore.collection("CHATS")
+                                .document(chatPartner.id)
+                                .collection("chats")
+                                .document(id.id)
+                                .set(chatForPartner)
                         }
                     }
             }
@@ -358,6 +386,34 @@ class PingoRepoImpl @Inject constructor(
                             .collection("chats")
                             .document(chatId.chatId.toString())
                             .update("last", messageData)
+
+
+                        val notification = Notification(
+                            deviceToken = chatId.user2.fcm,
+                            title = chatId.user2.username.toString(),
+                            message = message
+                        )
+                        Log.d("NOTIFICATION", "$notification")
+                        val call = pingoService.SendNotification(notification)
+                        call.enqueue(object : Callback<NotificationResponse> {
+                            override fun onFailure(call: Call<NotificationResponse>, t: Throwable) {
+                                Log.d("RESPONSE", "Failure: ${t.message}")
+                            }
+
+                            override fun onResponse(
+                                call: Call<NotificationResponse>,
+                                response: retrofit2.Response<NotificationResponse>
+                            ) {
+                                if (response.isSuccessful && response.body() != null) {
+                                    Log.d("RESPONSE", "Success: ${response.body()?.message_id}")
+                                } else {
+                                    Log.d("RESPONSE", "Unsuccessful response: ${response.errorBody()?.string()}")
+                                }
+                            }
+                        })
+
+
+
 
                         Log.d("MESSAGE", "message sent : ")
                     } catch (e: Exception) {

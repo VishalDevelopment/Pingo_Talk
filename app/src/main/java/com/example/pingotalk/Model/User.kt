@@ -7,5 +7,5 @@ data class User(
     val email:String?=null,
     val phoneNo:String?=null,
     val subscription:String?=null,
-    val FCM:String? = null
+    val fcm:String? = null
 )
