@@ -1,13 +1,12 @@
 package com.example.pingotalk
 
 import android.app.Application
-import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
-import com.example.pingotalk.Services.notificationServices.Companion.CHANNELID
-import com.example.pingotalk.Services.notificationServices.Companion.CHANNELNAME
+import com.example.pingotalk.Common.Services.notificationServices.Companion.CHANNELID
+import com.example.pingotalk.Common.Services.notificationServices.Companion.CHANNELNAME
 import dagger.hilt.android.HiltAndroidApp
 
 @HiltAndroidApp

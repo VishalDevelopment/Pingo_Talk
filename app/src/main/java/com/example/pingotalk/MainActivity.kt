@@ -29,15 +29,15 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.pingotalk.Model.ChatData
-import com.example.pingotalk.Model.User
-import com.example.pingotalk.Routes.Routes
-import com.example.pingotalk.Screens.Chat_Screen.ChatScreen
-import com.example.pingotalk.Screens.Home_Screen.HomeScreen
-import com.example.pingotalk.Screens.Landing_Screen.SignInScreen
-import com.example.pingotalk.Screens.Profile_Screen.ProfileScreen
-import com.example.pingotalk.Screens.Search_Screen.SearchScreen
-import com.example.pingotalk.Viewmodel.PingoViewmodel
+import com.example.pingotalk.Data_Layer.Model.ChatData
+import com.example.pingotalk.Data_Layer.Model.User
+import com.example.pingotalk.Common.Routes.Routes
+import com.example.pingotalk.Ui_Layer.Screens.Chat_Screen.ChatScreen
+import com.example.pingotalk.Ui_Layer.Screens.Home_Screen.HomeScreen
+import com.example.pingotalk.Ui_Layer.Screens.Landing_Screen.SignInScreen
+import com.example.pingotalk.Ui_Layer.Screens.Profile_Screen.ProfileScreen
+import com.example.pingotalk.Ui_Layer.Screens.Search_Screen.SearchScreen
+import com.example.pingotalk.Ui_Layer.Viewmodel.PingoViewmodel
 import com.example.pingotalk.ui.theme.PingoTalkTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -148,7 +148,13 @@ class MainActivity : ComponentActivity() {
                         ) + fadeOut(animationSpec = tween(durationMillis = 600)) // Slower exit
                     }
                 ) {
-                    SearchScreen()
+                    SearchScreen({ chat ->
+                        chatFeature = chat
+                        navController.navigate(Routes.ChatScreen) {
+                            launchSingleTop = true
+                            popUpTo(Routes.HomeScreen) { inclusive = false }
+                        }
+                    })
                 }
             }
         }
